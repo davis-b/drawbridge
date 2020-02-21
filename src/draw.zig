@@ -99,3 +99,24 @@ pub fn thing(fgColor: u32, surface: *c.SDL_Surface) void {
     line2(280, -50, 320, 90, fgColor, surface) catch unreachable;
     line2(320, 50, 280, -90, fgColor, surface) catch unreachable;
 }
+
+pub fn squares(surface: *c.SDL_Surface) void {
+    var x: c_int = 300;
+    var y: c_int = 20;
+    const size = 50;
+    const step = size + 20;
+    const colors = [_]u32{
+        0x00c070,
+        0xff3a00,
+        0x00a0ff,
+    };
+    var rectangle = c.SDL_Rect{ .x = 0, .y = 0, .h = 0, .w = 0 };
+    for (colors) |color| {
+        rectangle.x = x;
+        rectangle.y = y;
+        rectangle.w = size;
+        rectangle.h = size;
+        _ = c.SDL_FillRect(surface, &rectangle, color);
+        x += step;
+    }
+}
