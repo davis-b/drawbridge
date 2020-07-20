@@ -58,12 +58,20 @@ pub fn main() !void {
     c.SDL_Log(c"pong\n");
 }
 
-/// Should return mouse pos within the drawing, rather than the raw mouse pos of the window.
+/// Draws contents of frame onto surface
+/// intended not to be used every update, but instead
+/// when we resize, zoom, or scroll through an image.
+fn drawFrame(frame: *Frame, surface: *c.SDL_Surface) void {
+    //
+}
+
+/// TODO
+/// Should return mouse pos within the frame, rather than the raw mouse pos of the window.
 fn getMousePos() usize {
     var x: c_int = 0;
     var y: c_int = 0;
     const state = c.SDL_GetMouseState(&x, &y);
-    warn("state: {}\n", state);
+    warn("state: {} x: {} y: {}\n", state, x, y);
     //const pos = x + (x * y);
     //const pos = y + (x * y);
     const pos = (y * windowWidth) + x;
@@ -86,10 +94,10 @@ fn onEvent(event: c.SDL_Event, user: *users.User, state: *State, running: *bool)
                     } else {
                         user.color = 0x00ff00;
                     }
-                    const pixel = @alignCast(4, state.surface.pixels.?);
-                    const color = @ptrCast([*]u32, pixel);
+                    const cPixels = @alignCast(4, state.surface.pixels.?);
+                    const pixels = @ptrCast([*]u32, cPixels);
                     const pos = getMousePos();
-                    warn("color: {}\n", color[pos]);
+                    warn("color: {}\n", pixels[pos]);
                     warn("pos: {}\n", pos);
                 },
                 else => warn("key pressed: {}\n", key),
