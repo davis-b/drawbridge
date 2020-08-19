@@ -13,10 +13,14 @@ const users = @import("user.zig");
 
 const GeneralError = error{SDLINitializationFailed};
 
-extern fn changeColors(width: c_int, height: c_int, colorA: u32, colorB: u32, surf: *c.SDL_Surface) void;
-extern fn inverseColors(width: c_int, height: c_int, colorA: u32, colorB: u32, surf: *c.SDL_Surface) void;
-extern fn voidToU32(v: *c_void) u32;
-extern fn incVoid(v: *c_void, amount: u32) *c_void;
+//  extern fn changeColors(width: c_int, height: c_int, colorA: u32, colorB: u32, surf: *c.SDL_Surface) void;
+//  extern fn inverseColors(width: c_int, height: c_int, colorA: u32, colorB: u32, surf: *c.SDL_Surface) void;
+//  extern fn voidToU32(v: *c_void) u32;
+//  extern fn incVoid(v: *c_void, amount: u32) *c_void;
+const changeColors = c.changeColors;
+const inverseColors = c.inverseColors;
+const voidToU32 = c.voidToU32;
+const incVoid = c.incVoid;
 
 const maxDrawSize: c_int = math.maxInt(c_int);
 
@@ -55,7 +59,7 @@ pub fn main() !void {
         _ = c.SDL_WaitEvent(&event);
         onEvent(event, &user, &state, &running);
     }
-    c.SDL_Log(c"pong\n");
+    c.SDL_Log("pong\n");
 }
 
 /// Draws contents of frame onto surface
@@ -71,7 +75,7 @@ fn getMousePos() usize {
     var x: c_int = 0;
     var y: c_int = 0;
     const state = c.SDL_GetMouseState(&x, &y);
-    warn("state: {} x: {} y: {}\n", state, x, y);
+    warn("state: {} x: {} y: {}\n", .{ state, x, y });
     //const pos = x + (x * y);
     //const pos = y + (x * y);
     const pos = (y * windowWidth) + x;
@@ -97,10 +101,10 @@ fn onEvent(event: c.SDL_Event, user: *users.User, state: *State, running: *bool)
                     const cPixels = @alignCast(4, state.surface.pixels.?);
                     const pixels = @ptrCast([*]u32, cPixels);
                     const pos = getMousePos();
-                    warn("color: {}\n", pixels[pos]);
-                    warn("pos: {}\n", pos);
+                    warn("color: {}\n", .{pixels[pos]});
+                    warn("pos: {}\n", .{pos});
                 },
-                else => warn("key pressed: {}\n", key),
+                else => warn("key pressed: {}\n", .{key}),
             }
         },
         c.SDL_KEYUP => {},
@@ -153,12 +157,12 @@ fn onEvent(event: c.SDL_Event, user: *users.User, state: *State, running: *bool)
             }
         },
         c.SDL_QUIT => {
-            warn("Attempting to quit\n");
+            warn("Attempting to quit\n", .{});
             running.* = false;
         },
-        c.SDL_WINDOWEVENT => warn("window event {}\n", event.window.event),
-        c.SDL_SYSWMEVENT => warn("syswm event {}\n", event),
+        c.SDL_WINDOWEVENT => warn("window event {}\n", .{event.window.event}),
+        c.SDL_SYSWMEVENT => warn("syswm event {}\n", .{event}),
         c.SDL_TEXTINPUT => {},
-        else => warn("unexpected event # {} \n", event.type),
+        else => warn("unexpected event # {} \n", .{event.type}),
     }
 }

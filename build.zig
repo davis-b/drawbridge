@@ -5,8 +5,10 @@ pub fn build(b: *Builder) void {
     const exe = b.addExecutable("drawbridge", "src/main.zig");
     exe.setBuildMode(mode);
 
-    const lib_cflags = [_][]const u8{"-std=c99"};
-    exe.addCSourceFile("src/setpixel.c", lib_cflags);
+    // const lib_cflags = [_][]const u8{"-std=c99"};
+    //const lib_cflags = []const []const u8{"-std=c99"};
+    //exe.addCSourceFile("src/setpixel.c", "-std=c99");
+    //exe.addCSourceFile("src/setpixel.c", lib_cflags);
     exe.addIncludeDir("src/");
     exe.linkSystemLibrary("c");
     exe.addIncludeDir("/usr/include/SDL2/");
