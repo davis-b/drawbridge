@@ -1,9 +1,9 @@
 #include "SDL.h"
 
-void setPixel(int x, int y, uint32_t color, SDL_Surface *surface) {
-	uint8_t *target_pixel = (uint8_t *)surface->pixels + y * surface->pitch + x * 4;
-	*(uint32_t *)target_pixel = color;
-}
+  void setPixel(int x, int y, uint32_t color, SDL_Surface *surface) {
+  	uint8_t *target_pixel = (uint8_t *)surface->pixels + y * surface->pitch + x * 4;
+  	*(uint32_t *)target_pixel = color;
+  }
 
 void changeColors(int width, int height, uint32_t colorA, uint32_t colorB, SDL_Surface *surface) {
 	for (int x = 0; x < width; x++) {

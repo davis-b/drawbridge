@@ -13,10 +13,6 @@ const users = @import("user.zig");
 
 const GeneralError = error{SDLINitializationFailed};
 
-//  extern fn changeColors(width: c_int, height: c_int, colorA: u32, colorB: u32, surf: *c.SDL_Surface) void;
-//  extern fn inverseColors(width: c_int, height: c_int, colorA: u32, colorB: u32, surf: *c.SDL_Surface) void;
-//  extern fn voidToU32(v: *c_void) u32;
-//  extern fn incVoid(v: *c_void, amount: u32) *c_void;
 const changeColors = c.changeColors;
 const inverseColors = c.inverseColors;
 const voidToU32 = c.voidToU32;
