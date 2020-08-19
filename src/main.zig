@@ -15,8 +15,8 @@ const GeneralError = error{SDLINitializationFailed};
 
 const changeColors = c.changeColors;
 const inverseColors = c.inverseColors;
-const voidToU32 = c.voidToU32;
-const incVoid = c.incVoid;
+// const voidToU32 = c.voidToU32;
+// const incVoid = c.incVoid;
 
 const maxDrawSize: c_int = math.maxInt(c_int);
 
@@ -89,16 +89,11 @@ fn onEvent(event: c.SDL_Event, user: *users.User, state: *State, running: *bool)
                 c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(state.surface, null, state.bgColor),
                 c.SDL_Scancode.SDL_SCANCODE_M => state.mirrorDrawing = !state.mirrorDrawing,
                 c.SDL_Scancode.SDL_SCANCODE_C => {
-                    if (user.color == 0x00ff00) {
-                        user.color = 0xff0000;
-                    } else {
-                        user.color = 0x00ff00;
-                    }
                     const cPixels = @alignCast(4, state.surface.pixels.?);
                     const pixels = @ptrCast([*]u32, cPixels);
                     const pos = getMousePos();
-                    warn("color: {}\n", .{pixels[pos]});
-                    warn("pos: {}\n", .{pos});
+                    const color = pixels[pos];
+                    user.color = color;
                 },
                 else => warn("key pressed: {}\n", .{key}),
             }
