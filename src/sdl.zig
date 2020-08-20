@@ -27,7 +27,8 @@ pub fn initWindow(width: c_int, height: c_int) !*c.SDL_Window {
         SDL_WINDOWPOS_UNDEFINED,
         width,
         height,
-        c.SDL_WINDOW_OPENGL,
+        // c.SDL_WINDOW_OPENGL | c.SDL_WINDOW_SHOWN | c.SDL_WINDOW_RESIZABLE,
+        c.SDL_WINDOW_SHOWN | c.SDL_WINDOW_RESIZABLE,
     ) orelse {
         c.SDL_Log("Unable to create window: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
@@ -47,4 +48,8 @@ pub fn deinit(window: *c.SDL_Window, surface: *c.SDL_Surface) void {
     c.SDL_FreeSurface(surface);
     c.SDL_DestroyWindow(window);
     //c.SDL_Quit();
+}
+
+pub fn updateSurface(window: *c.SDL_Window) void {
+    _ = c.SDL_UpdateWindowSurface(window);
 }
