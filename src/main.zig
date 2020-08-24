@@ -30,8 +30,8 @@ pub fn main() !void {
     defer c.SDL_DestroyWindow(window);
     const surface = try sdl.initSurface(window);
 
-    const image_width = 800;
-    const image_height = 400;
+    const image_width = 1500;
+    const image_height = 1000;
     const surface_draw = try sdl.initRgbSurface(0, image_width, image_height, 32);
     var bgColor: u32 = c.SDL_MapRGB(surface.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface.format, 200, 200, 200);
@@ -52,7 +52,6 @@ pub fn main() !void {
         .surface = surface,
         .image = surface_draw,
     };
-    defer c.SDL_FreeSurface(world.surface);
     defer c.SDL_FreeSurface(world.image);
     var event: c.SDL_Event = undefined;
     while (running) {
@@ -72,8 +71,6 @@ fn drawFrame(src: *c.SDL_Surface, dst: *c.SDL_Surface) void {
     var r2 = c.SDL_Rect{ .x = 0, .y = 0, .h = 500, .w = 500 };
     _ = c.SDL_FillRect(dst, null, 0x333333);
     _ = c.SDL_FillRect(src, null, 0xffffff);
-    //   _ = c.SDL_SetClipRect(src, &r1);
-    //   _ = c.SDL_SetClipRect(dst, &r2);
     //const result = c.SDL_BlitScaled(src, null, dst, null);
     const result = c.SDL_BlitSurface(src, null, dst, null);
     std.debug.assert(result == 0);
@@ -190,7 +187,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 c.SDL_WINDOWEVENT_MOVED => {},
                 c.SDL_WINDOWEVENT_RESIZED => {
                     warn("window resized {}x{}\n", .{ width, height });
-                    c.SDL_FreeSurface(world.surface);
+                    // c.SDL_FreeSurface(world.surface);
                     world.surface = sdl.initSurface(world.window) catch unreachable;
                 },
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
