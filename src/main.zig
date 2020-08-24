@@ -20,8 +20,8 @@ const inverseColors = c.inverseColors;
 
 const maxDrawSize: c_int = math.maxInt(c_int);
 
-const windowWidth: c_int = 2300;
-const windowHeight: c_int = 1440;
+const windowWidth: c_int = 1500;
+const windowHeight: c_int = 1000;
 //c.SDL_GetWindowSize(window, &windowWidth, &windowHeight);
 pub fn main() !void {
     try sdl.init();
@@ -30,8 +30,8 @@ pub fn main() !void {
     defer c.SDL_DestroyWindow(window);
     const surface = try sdl.initSurface(window);
 
-    const image_width = 1500;
-    const image_height = 1000;
+    const image_width = 1300;
+    const image_height = 800;
     const surface_draw = try sdl.initRgbSurface(0, image_width, image_height, 32);
     var bgColor: u32 = c.SDL_MapRGB(surface.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface.format, 200, 200, 200);
@@ -69,7 +69,7 @@ pub fn main() !void {
 fn drawFrame(src: *c.SDL_Surface, dst: *c.SDL_Surface) void {
     var r1 = c.SDL_Rect{ .x = 1, .y = 1, .h = 250, .w = 250 };
     var r2 = c.SDL_Rect{ .x = 0, .y = 0, .h = 500, .w = 500 };
-    _ = c.SDL_FillRect(dst, null, 0x333333);
+    // _ = c.SDL_FillRect(dst, null, 0x333333);
     _ = c.SDL_FillRect(src, null, 0xffffff);
     //const result = c.SDL_BlitScaled(src, null, dst, null);
     const result = c.SDL_BlitSurface(src, null, dst, null);
@@ -114,7 +114,8 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
             switch (key) {
                 c.SDL_Scancode.SDL_SCANCODE_Q => running.* = false,
                 c.SDL_Scancode.SDL_SCANCODE_I => inverseColors(windowWidth, windowHeight, user.color, world.bgColor, world.image),
-                c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.image, null, world.bgColor),
+                //c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.image, null, world.bgColor),
+                c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.surface, null, @intCast(u32, std.time.timestamp()) % 0xffffff),
                 c.SDL_Scancode.SDL_SCANCODE_M => world.mirrorDrawing = !world.mirrorDrawing,
                 c.SDL_Scancode.SDL_SCANCODE_C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
