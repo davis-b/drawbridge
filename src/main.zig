@@ -30,7 +30,6 @@ pub fn main() !void {
     const window = try sdl.initWindow(windowWidth, windowHeight);
     defer c.SDL_DestroyWindow(window);
     const surface = try sdl.initSurface(window);
-    defer c.SDL_FreeSurface(surface);
     var bgColor: u32 = c.SDL_MapRGB(surface.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface.format, 200, 200, 200);
     //user.color = 0xafafaf;
@@ -50,6 +49,7 @@ pub fn main() !void {
         .surface = surface,
         .draw_area = .{ .width = 100, .height = 100 },
     };
+    defer c.SDL_FreeSurface(world.surface);
     var image = try Image.init(std.heap.page_allocator, 200, 150);
     defer image.deinit();
     var event: c.SDL_Event = undefined;
