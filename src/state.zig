@@ -3,11 +3,10 @@ const c = @import("c.zig");
 pub const World = struct {
     window: *c.SDL_Window,
     surface: *c.SDL_Surface,
+    image: *c.SDL_Surface,
     drawing: bool = false,
     mirrorDrawing: bool = false,
     bgColor: u32 = 0x090909,
-
-    draw_area: Rectangle,
 };
 
 const Rectangle = struct {

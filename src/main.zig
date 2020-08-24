@@ -7,7 +7,6 @@ const assert = std.debug.assert;
 const draw = @import("draw.zig");
 const tools = @import("tools.zig");
 const state = @import("state.zig");
-const Image = @import("image.zig").Image;
 
 const c = @import("c.zig");
 const sdl = @import("sdl.zig");
@@ -30,6 +29,10 @@ pub fn main() !void {
     const window = try sdl.initWindow(windowWidth, windowHeight);
     defer c.SDL_DestroyWindow(window);
     const surface = try sdl.initSurface(window);
+
+    const image_width = 800;
+    const image_height = 400;
+    const surface_draw = try sdl.initRgbSurface(0, image_width, image_height, 32);
     var bgColor: u32 = c.SDL_MapRGB(surface.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface.format, 200, 200, 200);
     //user.color = 0xafafaf;
@@ -47,16 +50,16 @@ pub fn main() !void {
     var world = state.World{
         .window = window,
         .surface = surface,
-        .draw_area = .{ .width = 100, .height = 100 },
+        .image = surface_draw,
     };
     defer c.SDL_FreeSurface(world.surface);
-    var image = try Image.init(std.heap.page_allocator, 200, 150);
-    defer image.deinit();
+    defer c.SDL_FreeSurface(world.image);
     var event: c.SDL_Event = undefined;
     while (running) {
+        drawFrame(world.image, world.surface);
         sdl.updateSurface(world.window);
         _ = c.SDL_WaitEvent(&event);
-        onEvent(event, &user, &world, &image, &running);
+        onEvent(event, &user, &world, &running);
     }
     c.SDL_Log("pong\n");
 }
@@ -64,15 +67,33 @@ pub fn main() !void {
 /// Draws contents of frame onto surface
 /// intended not to be used every update, but instead
 /// when we resize, zoom, or scroll through an image.
-fn drawFrame(world: *state.World, image: *Image) void {
-    // _ = c.SDL_FillRect(world.surface, null, 0xfff);
-    _ = c.SDL_LockSurface(world.surface);
-    defer c.SDL_UnlockSurface(world.surface);
-    var n = @intCast(usize, world.surface.w * world.surface.h);
-    var pixels: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf([*]u32), world.surface.pixels.?));
-    while (n > 0) : (n -= 1) {
-        pixels[n] = @intCast(u32, n % 10000);
-    }
+fn drawFrame(src: *c.SDL_Surface, dst: *c.SDL_Surface) void {
+    var r1 = c.SDL_Rect{ .x = 1, .y = 1, .h = 250, .w = 250 };
+    var r2 = c.SDL_Rect{ .x = 0, .y = 0, .h = 500, .w = 500 };
+    _ = c.SDL_FillRect(dst, null, 0x333333);
+    _ = c.SDL_FillRect(src, null, 0xffffff);
+    //   _ = c.SDL_SetClipRect(src, &r1);
+    //   _ = c.SDL_SetClipRect(dst, &r2);
+    //const result = c.SDL_BlitScaled(src, null, dst, null);
+    const result = c.SDL_BlitSurface(src, null, dst, null);
+    std.debug.assert(result == 0);
+
+    //  _ = c.SDL_LockSurface(dst);
+    //  _ = c.SDL_LockSurface(src);
+    //  defer c.SDL_UnlockSurface(src);
+    //  defer c.SDL_UnlockSurface(dst);
+    //  var remaining: usize = 1000;
+    //  var spx: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf([*]u32), src.pixels.?));
+    //  var dpx: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf([*]u32), dst.pixels.?));
+    //  while (remaining > 0) : (remaining -= 1) {
+    //      dpx[remaining] = spx[remaining];
+    //  }
+
+    //  var n = @intCast(usize, world.surface.w * world.surface.h);
+    //  var pixels: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf([*]u32), world.surface.pixels.?));
+    //  while (n > 0) : (n -= 1) {
+    //      pixels[n] = @intCast(u32, n % 10000);
+    //  }
 }
 
 /// TODO
@@ -89,14 +110,14 @@ fn getMousePos() usize {
     return @intCast(usize, pos);
 }
 
-fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, image: *Image, running: *bool) void {
+fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: *bool) void {
     switch (event.type) {
         c.SDL_KEYDOWN => {
             const key = event.key.keysym.scancode;
             switch (key) {
                 c.SDL_Scancode.SDL_SCANCODE_Q => running.* = false,
-                c.SDL_Scancode.SDL_SCANCODE_I => inverseColors(windowWidth, windowHeight, user.color, world.bgColor, world.surface),
-                c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.surface, null, world.bgColor),
+                c.SDL_Scancode.SDL_SCANCODE_I => inverseColors(windowWidth, windowHeight, user.color, world.bgColor, world.image),
+                c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.image, null, world.bgColor),
                 c.SDL_Scancode.SDL_SCANCODE_M => world.mirrorDrawing = !world.mirrorDrawing,
                 c.SDL_Scancode.SDL_SCANCODE_C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
@@ -117,18 +138,18 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, image: *I
                 const y = event.motion.y;
                 const deltaX = event.motion.xrel;
                 const deltaY = event.motion.yrel;
-                tools.pencil(x, y, deltaX, deltaY, user.color, world.surface);
+                tools.pencil(x, y, deltaX, deltaY, user.color, world.image);
                 if (world.mirrorDrawing) {
                     const halfwidth = windowWidth / 2;
                     const halfheight = windowHeight / 2;
                     const deltaW = x - halfwidth;
                     const deltaH = y - halfheight;
                     // mirror x
-                    tools.pencil(halfwidth - deltaW, y, -deltaX, deltaY, user.color, world.surface);
+                    tools.pencil(halfwidth - deltaW, y, -deltaX, deltaY, user.color, world.image);
                     // mirror y
-                    tools.pencil(x, halfheight - deltaH, deltaX, -deltaY, user.color, world.surface);
+                    tools.pencil(x, halfheight - deltaH, deltaX, -deltaY, user.color, world.image);
                     // mirror xy (diagonal corner)
-                    tools.pencil(halfwidth - deltaW, halfheight - deltaH, -deltaX, -deltaY, user.color, world.surface);
+                    tools.pencil(halfwidth - deltaW, halfheight - deltaH, -deltaX, -deltaY, user.color, world.image);
                 }
             }
         },
@@ -136,9 +157,9 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, image: *I
             world.drawing = true;
             const x = event.button.x;
             const y = event.button.y;
-            tools.pencil(x, y, 0, 0, user.color, world.surface);
+            tools.pencil(x, y, 0, 0, user.color, world.image);
             if (event.button.button != 1) {
-                draw.line2(x, x - user.lastX, y, y - user.lastY, user.color, world.surface) catch unreachable;
+                draw.line2(x, x - user.lastX, y, y - user.lastY, user.color, world.image) catch unreachable;
             }
             user.lastX = x;
             user.lastY = y;
@@ -147,7 +168,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, image: *I
             world.drawing = false;
         },
         c.SDL_MOUSEWHEEL => {
-            // changeColors(windowWidth, windowHeight, user.color, world.bgColor, world.surface);
+            // changeColors(windowWidth, windowHeight, user.color, world.bgColor, world.image);
             var skip = false;
             if (event.wheel.y == -1 and (draw.Rectangle.h == 1 or draw.Rectangle.w == 1)) skip = true;
             if (event.wheel.y == 1 and (draw.Rectangle.h == maxDrawSize or draw.Rectangle.w == maxDrawSize)) skip = true;
@@ -171,7 +192,6 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, image: *I
                     warn("window resized {}x{}\n", .{ width, height });
                     c.SDL_FreeSurface(world.surface);
                     world.surface = sdl.initSurface(world.window) catch unreachable;
-                    drawFrame(world, image);
                 },
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
                 c.SDL_WINDOWEVENT_EXPOSED => {
