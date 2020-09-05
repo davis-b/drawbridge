@@ -45,8 +45,7 @@ pub fn initSurface(window: *c.SDL_Window) !*c.SDL_Surface {
     return surface;
 }
 
-pub fn initRgbSurface(flasg: u32, w: c_int, h: c_int, depth: c_int) !*c.SDL_Surface {
-    const flags = 0;
+pub fn initRgbSurface(flags: u32, w: c_int, h: c_int, depth: c_int) !*c.SDL_Surface {
     switch (std.builtin.endian) {
         .Little => {
             const rmask = 0x000000ff;

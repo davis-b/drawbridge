@@ -32,7 +32,7 @@ pub fn main() !void {
 
     const image_width = 1300;
     const image_height = 800;
-    const surface_draw = try sdl.initRgbSurface(0, image_width, image_height, 32);
+    const surface_draw = try sdl.initRgbSurface(0, image_width, image_height, 24);
     var bgColor: u32 = c.SDL_MapRGB(surface.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface.format, 200, 200, 200);
     //user.color = 0xafafaf;
@@ -70,27 +70,10 @@ fn drawFrame(src: *c.SDL_Surface, dst: *c.SDL_Surface) void {
     var r1 = c.SDL_Rect{ .x = 1, .y = 1, .h = 250, .w = 250 };
     var r2 = c.SDL_Rect{ .x = 0, .y = 0, .h = 500, .w = 500 };
     // _ = c.SDL_FillRect(dst, null, 0x333333);
-    _ = c.SDL_FillRect(src, null, 0xffffff);
-    //const result = c.SDL_BlitScaled(src, null, dst, null);
+    // _ = c.SDL_FillRect(src, null, 0xffffff);
+    // const result = c.SDL_BlitScaled(src, null, dst, null);
     const result = c.SDL_BlitSurface(src, null, dst, null);
     std.debug.assert(result == 0);
-
-    //  _ = c.SDL_LockSurface(dst);
-    //  _ = c.SDL_LockSurface(src);
-    //  defer c.SDL_UnlockSurface(src);
-    //  defer c.SDL_UnlockSurface(dst);
-    //  var remaining: usize = 1000;
-    //  var spx: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf([*]u32), src.pixels.?));
-    //  var dpx: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf([*]u32), dst.pixels.?));
-    //  while (remaining > 0) : (remaining -= 1) {
-    //      dpx[remaining] = spx[remaining];
-    //  }
-
-    //  var n = @intCast(usize, world.surface.w * world.surface.h);
-    //  var pixels: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf([*]u32), world.surface.pixels.?));
-    //  while (n > 0) : (n -= 1) {
-    //      pixels[n] = @intCast(u32, n % 10000);
-    //  }
 }
 
 /// TODO
