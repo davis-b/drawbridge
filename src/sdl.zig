@@ -45,29 +45,29 @@ pub fn initSurface(window: *c.SDL_Window) !*c.SDL_Surface {
     return surface;
 }
 
+const masks = switch (std.builtin.endian) {
+    .Little => {
+        const rmask = 0x000000ff;
+        const gmask = 0x0000ff00;
+        const bmask = 0x00ff0000;
+        const amask = 0xff000000;
+        const m = [_]u32{ rmask, gmask, bmask, amask };
+        return m;
+    },
+    .Big => {
+        const rmask = 0xff000000;
+        const gmask = 0x00ff0000;
+        const bmask = 0x0000ff00;
+        const amask = 0x000000ff;
+        const m = [_]u32{ rmask, gmask, bmask, amask };
+        return m;
+    },
+};
 pub fn initRgbSurface(flags: u32, w: c_int, h: c_int, depth: c_int) !*c.SDL_Surface {
-    switch (std.builtin.endian) {
-        .Little => {
-            const rmask = 0x000000ff;
-            const gmask = 0x0000ff00;
-            const bmask = 0x00ff0000;
-            const amask = 0xff000000;
-            return c.SDL_CreateRGBSurface(flags, w, h, depth, rmask, gmask, bmask, amask) orelse {
-                c.SDL_Log("Unable to get window surface: %s", c.SDL_GetError());
-                return error.SDLInitializationFailed;
-            };
-        },
-        .Big => {
-            const rmask = 0xff000000;
-            const gmask = 0x00ff0000;
-            const bmask = 0x0000ff00;
-            const amask = 0x000000ff;
-            return c.SDL_CreateRGBSurface(flags, w, h, depth, rmask, gmask, bmask, amask) orelse {
-                c.SDL_Log("Unable to get window surface: %s", c.SDL_GetError());
-                return error.SDLInitializationFailed;
-            };
-        },
-    }
+    return c.SDL_CreateRGBSurface(flags, w, h, depth, masks[0], masks[1], masks[2], masks[3]) orelse {
+        c.SDL_Log("Unable to get window surface: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
 }
 
 pub fn deinit(window: *c.SDL_Window, surface: *c.SDL_Surface) void {
