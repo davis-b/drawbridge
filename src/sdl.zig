@@ -46,21 +46,7 @@ pub fn initSurface(window: *c.SDL_Window) !*c.SDL_Surface {
 }
 
 pub fn initRgbSurface(flags: u32, w: c_int, h: c_int, depth: c_int) !*c.SDL_Surface {
-    const rgba_masks: [4]u32 = switch (std.builtin.endian) {
-        .Little => [_]u32{
-            0x000000ff,
-            0x0000ff00,
-            0x00ff0000,
-            0xff000000,
-        },
-        .Big => [_]u32{
-            0xff000000,
-            0x00ff0000,
-            0x0000ff00,
-            0x000000ff,
-        },
-    };
-    return c.SDL_CreateRGBSurface(flags, w, h, depth, rgba_masks[0], rgba_masks[1], rgba_masks[2], rgba_masks[3]) orelse {
+    return c.SDL_CreateRGBSurface(flags, w, h, depth, 0, 0, 0, 0) orelse {
         c.SDL_Log("Unable to get window surface: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
