@@ -33,15 +33,15 @@ pub fn main() !void {
     const image_width = 1300;
     const image_height = 800;
     const surface_draw = try sdl.initRgbSurface(0, image_width, image_height, 24);
-    var bgColor: u32 = c.SDL_MapRGB(surface.format, 10, 10, 10);
-    var fgColor: u32 = c.SDL_MapRGB(surface.format, 200, 200, 200);
+    var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 10, 10, 10);
+    var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
     //user.color = 0xafafaf;
     const fillresult = c.SDL_FillRect(surface, null, bgColor);
     std.debug.assert(fillresult == 0);
     sdl.updateSurface(window);
 
-    draw.thing(fgColor, surface);
-    draw.squares(surface);
+    draw.thing(fgColor, surface_draw);
+    draw.squares(surface_draw);
 
     var running = true;
     //const t = @intToEnum(c.SDL_bool, c.SDL_TRUE);
@@ -64,14 +64,7 @@ pub fn main() !void {
 }
 
 /// Draws contents of frame onto surface
-/// intended not to be used every update, but instead
-/// when we resize, zoom, or scroll through an image.
 fn drawFrame(src: *c.SDL_Surface, dst: *c.SDL_Surface) void {
-    var r1 = c.SDL_Rect{ .x = 1, .y = 1, .h = 250, .w = 250 };
-    var r2 = c.SDL_Rect{ .x = 0, .y = 0, .h = 500, .w = 500 };
-    // _ = c.SDL_FillRect(dst, null, 0x333333);
-    // _ = c.SDL_FillRect(src, null, 0xffffff);
-    // const result = c.SDL_BlitScaled(src, null, dst, null);
     const result = c.SDL_BlitSurface(src, null, dst, null);
     std.debug.assert(result == 0);
 }
@@ -173,6 +166,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                     warn("window resized {}x{}\n", .{ width, height });
                     // c.SDL_FreeSurface(world.surface);
                     world.surface = sdl.initSurface(world.window) catch unreachable;
+                    _ = c.SDL_FillRect(world.surface, null, 0x000000);
                 },
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
                 c.SDL_WINDOWEVENT_EXPOSED => {

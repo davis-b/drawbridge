@@ -106,9 +106,9 @@ pub fn squares(surface: *c.SDL_Surface) void {
     const size = 50;
     const step = size + 20;
     const colors = [_]u32{
-        0x00c070,
-        0xff3a00,
-        0x00a0ff,
+        0xff0000,
+        0x00ff00,
+        0x0000ff,
     };
     var rectangle = c.SDL_Rect{ .x = 0, .y = 0, .h = 0, .w = 0 };
     for (colors) |color| {
