@@ -67,7 +67,7 @@ const Cursor = enum(c_int) {
     hand = c.SDL_SYSTEM_CURSOR_HAND,
 };
 
-pub fn CreateSystemCursor(cursor: Cursor) !*c.SDL_Cursor {
+pub fn createSystemCursor(cursor: Cursor) !*c.SDL_Cursor {
     const result = SDL_CreateSystemCursor(@enumToInt(cursor));
     if (@ptrToInt(result) == 0) {
         c.SDL_Log("Unable to set system cursor: %s", c.SDL_GetError());
