@@ -1,4 +1,5 @@
 const std = @import("std");
+const misc = @import("misc.zig");
 const c = @import("c.zig");
 
 // For some reason, this isn't parsed automatically. According to SDL docs, the
@@ -74,4 +75,11 @@ pub fn createSystemCursor(cursor: Cursor) !*c.SDL_Cursor {
         return error.SettingCursorFailed;
     }
     return result;
+}
+
+pub fn queryWindowSize(window: *c.SDL_Window) misc.Rectangle {
+    var w: c_int = undefined;
+    var h: c_int = undefined;
+    c.SDL_GetWindowSize(window, &w, &h);
+    return misc.Rectangle{ .w = w, .h = h };
 }
