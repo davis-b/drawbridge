@@ -32,6 +32,7 @@ pub fn main() !void {
     const image_width = 1300;
     const image_height = 800;
     const surface_draw = try sdl.display.initRgbSurface(0, image_width, image_height, 24);
+    defer c.SDL_FreeSurface(surface_draw);
     var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
     const fillresult = c.SDL_FillRect(surface, null, bgColor);
@@ -48,7 +49,7 @@ pub fn main() !void {
         .surface = surface,
         .image = surface_draw,
     };
-    defer c.SDL_FreeSurface(world.image);
+    defer c.SDL_FreeSurface(world.surface);
     var event: c.SDL_Event = undefined;
     while (running) {
         try drawFrame(world.image, world.surface);
