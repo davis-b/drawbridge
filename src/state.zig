@@ -9,11 +9,6 @@ pub const World = struct {
     bgColor: u32 = 0x090909,
 };
 
-const Rectangle = struct {
-    width: usize,
-    height: usize,
-};
-
 pub const User = struct {
     size: u8,
     color: u32,
