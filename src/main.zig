@@ -11,18 +11,13 @@ const state = @import("state.zig");
 const c = @import("c.zig");
 const sdl = @import("sdl/index.zig");
 
-const GeneralError = error{SDLINitializationFailed};
-
 const changeColors = c.changeColors;
 const inverseColors = c.inverseColors;
-// const voidToU32 = c.voidToU32;
-// const incVoid = c.incVoid;
 
 const maxDrawSize: c_int = math.maxInt(c_int);
 
 const windowWidth: c_int = 1500;
 const windowHeight: c_int = 1000;
-//c.SDL_GetWindowSize(window, &windowWidth, &windowHeight);
 
 pub fn main() !void {
     try sdl.init();
@@ -39,7 +34,6 @@ pub fn main() !void {
     const surface_draw = try sdl.display.initRgbSurface(0, image_width, image_height, 24);
     var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
-    //user.color = 0xafafaf;
     const fillresult = c.SDL_FillRect(surface, null, bgColor);
     std.debug.assert(fillresult == 0);
     sdl.display.updateSurface(window);
@@ -48,8 +42,6 @@ pub fn main() !void {
     draw.squares(surface_draw);
 
     var running = true;
-    //const t = @intToEnum(c.SDL_bool, c.SDL_TRUE);
-    //if (c.SDL_SetRelativeMouseMode(t) != 0) return error.UnableToSetRelativeMouseMode;
     var user = state.User{ .size = 10, .color = 0x777777 };
     var world = state.World{
         .window = window,
