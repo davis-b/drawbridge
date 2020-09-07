@@ -85,8 +85,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
             switch (key) {
                 c.SDL_Scancode.SDL_SCANCODE_Q => running.* = false,
                 c.SDL_Scancode.SDL_SCANCODE_I => inverseColors(windowWidth, windowHeight, user.color, world.bgColor, world.image),
-                //c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.image, null, world.bgColor),
-                c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.surface, null, @intCast(u32, std.time.timestamp()) % 0xffffff),
+                c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, std.time.milliTimestamp())),
                 c.SDL_Scancode.SDL_SCANCODE_M => world.mirrorDrawing = !world.mirrorDrawing,
                 c.SDL_Scancode.SDL_SCANCODE_C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
