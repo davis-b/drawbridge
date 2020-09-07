@@ -21,7 +21,7 @@ const windowHeight: c_int = 1000;
 
 pub fn main() !void {
     try sdl.init();
-    errdefer c.SDL_Quit();
+    errdefer sdl.deinit();
     const cursor = try sdl.mouse.createSystemCursor(.crosshair);
     defer c.SDL_FreeCursor(cursor);
     c.SDL_SetCursor(cursor);

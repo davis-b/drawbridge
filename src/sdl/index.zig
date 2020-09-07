@@ -8,3 +8,7 @@ pub fn init() !void {
         return error.SDLInitializationFailed;
     }
 }
+
+pub fn deinit() void {
+    c.SDL_Quit();
+}
