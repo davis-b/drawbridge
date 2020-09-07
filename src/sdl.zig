@@ -52,12 +52,6 @@ pub fn initRgbSurface(flags: u32, w: c_int, h: c_int, depth: c_int) !*c.SDL_Surf
     };
 }
 
-pub fn deinit(window: *c.SDL_Window, surface: *c.SDL_Surface) void {
-    c.SDL_FreeSurface(surface);
-    c.SDL_DestroyWindow(window);
-    //c.SDL_Quit();
-}
-
 pub fn updateSurface(window: *c.SDL_Window) void {
     _ = c.SDL_UpdateWindowSurface(window);
 }
