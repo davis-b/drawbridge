@@ -23,9 +23,13 @@ const maxDrawSize: c_int = math.maxInt(c_int);
 const windowWidth: c_int = 1500;
 const windowHeight: c_int = 1000;
 //c.SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
 pub fn main() !void {
     try sdl.init();
     errdefer c.SDL_Quit();
+    const cursor = try sdl.CreateSystemCursor(.crosshair);
+    defer c.SDL_FreeCursor(cursor);
+    c.SDL_SetCursor(cursor);
     const window = try sdl.initWindow(windowWidth, windowHeight);
     defer c.SDL_DestroyWindow(window);
     const surface = try sdl.initSurface(window);
