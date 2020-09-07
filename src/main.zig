@@ -59,7 +59,7 @@ pub fn main() !void {
     defer c.SDL_FreeSurface(world.image);
     var event: c.SDL_Event = undefined;
     while (running) {
-        drawFrame(world.image, world.surface);
+        try drawFrame(world.image, world.surface);
         sdl.display.updateSurface(world.window);
         _ = c.SDL_WaitEvent(&event);
         onEvent(event, &user, &world, &running);
@@ -68,9 +68,8 @@ pub fn main() !void {
 }
 
 /// Draws contents of frame onto surface
-fn drawFrame(src: *c.SDL_Surface, dst: *c.SDL_Surface) void {
-    const result = c.SDL_BlitSurface(src, null, dst, null);
-    std.debug.assert(result == 0);
+fn drawFrame(src: *c.SDL_Surface, dst: *c.SDL_Surface) !void {
+    try sdl.display.blit(src, null, dst, null);
 }
 
 /// TODO

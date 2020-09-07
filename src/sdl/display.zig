@@ -48,3 +48,8 @@ pub fn queryWindowSize(window: *c.SDL_Window) misc.Rectangle {
     c.SDL_GetWindowSize(window, &w, &h);
     return misc.Rectangle{ .w = w, .h = h };
 }
+
+pub fn blit(src: *c.SDL_Surface, src_rect: ?*c.SDL_Rect, dst: *c.SDL_Surface, dst_rect: ?*c.SDL_Rect) !void {
+    const result = c.SDL_BlitSurface(src, src_rect, dst, dst_rect);
+    if (result != 0) return error.BlitError;
+}
