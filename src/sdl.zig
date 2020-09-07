@@ -14,11 +14,6 @@ pub fn init() !void {
         c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     }
-
-    //    const renderer = c.SDL_CreateRenderer(window, -1, c.SDL_RENDERER_ACCELERATED) orelse {
-    //        return error.SDLInitializationFailed;
-    //    };
-    //    defer c.SDL_DestroyRenderer(renderer);
 }
 
 pub fn initWindow(width: c_int, height: c_int) !*c.SDL_Window {
