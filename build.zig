@@ -5,6 +5,9 @@ pub fn build(b: *Builder) void {
     const exe = b.addExecutable("drawbridge", "src/main.zig");
     exe.setBuildMode(mode);
 
+    exe.addPackagePath("c", "src/c.zig");
+    exe.addPackagePath("misc", "src/misc.zig");
+
     const lib_cflags = [_][]const u8{"-std=c99"};
     exe.addCSourceFile("src/setpixel.c", lib_cflags[0..]);
     exe.addIncludeDir("src/");

@@ -9,7 +9,7 @@ const tools = @import("tools.zig");
 const state = @import("state.zig");
 
 const c = @import("c.zig");
-const sdl = @import("sdl.zig");
+const sdl = @import("sdl/index.zig");
 
 const GeneralError = error{SDLINitializationFailed};
 
@@ -27,22 +27,22 @@ const windowHeight: c_int = 1000;
 pub fn main() !void {
     try sdl.init();
     errdefer c.SDL_Quit();
-    const cursor = try sdl.createSystemCursor(.crosshair);
+    const cursor = try sdl.mouse.createSystemCursor(.crosshair);
     defer c.SDL_FreeCursor(cursor);
     c.SDL_SetCursor(cursor);
-    const window = try sdl.initWindow(windowWidth, windowHeight);
+    const window = try sdl.display.initWindow(windowWidth, windowHeight);
     defer c.SDL_DestroyWindow(window);
-    const surface = try sdl.initSurface(window);
+    const surface = try sdl.display.initSurface(window);
 
     const image_width = 1300;
     const image_height = 800;
-    const surface_draw = try sdl.initRgbSurface(0, image_width, image_height, 24);
+    const surface_draw = try sdl.display.initRgbSurface(0, image_width, image_height, 24);
     var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
     //user.color = 0xafafaf;
     const fillresult = c.SDL_FillRect(surface, null, bgColor);
     std.debug.assert(fillresult == 0);
-    sdl.updateSurface(window);
+    sdl.display.updateSurface(window);
 
     draw.thing(fgColor, surface_draw);
     draw.squares(surface_draw);
@@ -60,7 +60,7 @@ pub fn main() !void {
     var event: c.SDL_Event = undefined;
     while (running) {
         drawFrame(world.image, world.surface);
-        sdl.updateSurface(world.window);
+        sdl.display.updateSurface(world.window);
         _ = c.SDL_WaitEvent(&event);
         onEvent(event, &user, &world, &running);
     }
@@ -169,7 +169,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 c.SDL_WINDOWEVENT_RESIZED => {
                     warn("window resized {}x{}\n", .{ width, height });
                     // c.SDL_FreeSurface(world.surface);
-                    world.surface = sdl.initSurface(world.window) catch unreachable;
+                    world.surface = sdl.display.initSurface(world.window) catch unreachable;
                     _ = c.SDL_FillRect(world.surface, null, 0x000000);
                 },
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
