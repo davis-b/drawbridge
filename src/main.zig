@@ -30,15 +30,8 @@ pub fn main() !void {
     const image_width = 1300;
     const image_height = 800;
     const surface_draw = try sdl.display.initRgbSurface(0, image_width, image_height, 24);
-    defer c.SDL_FreeSurface(surface_draw);
     var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 10, 10, 10);
     var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
-    const fillresult = c.SDL_FillRect(surface, null, bgColor);
-    std.debug.assert(fillresult == 0);
-    sdl.display.updateSurface(window);
-
-    draw.thing(fgColor, surface_draw);
-    draw.squares(surface_draw);
 
     var gui_surfaces = try gui.init();
     var image_area: sdl.Rect = getImageArea(surface, &gui_surfaces);
@@ -51,14 +44,20 @@ pub fn main() !void {
         .image = surface_draw,
         .image_area = &image_area,
         .gui = &gui_surfaces,
+        .bgColor = bgColor,
     };
     defer c.SDL_FreeSurface(world.surface);
+    defer c.SDL_FreeSurface(world.image);
+    try fullRender(world.surface, world.image, world.image_area, world.gui, world.bgColor);
+    draw.thing(fgColor, surface_draw);
+    draw.squares(surface_draw);
+
     var event: c.SDL_Event = undefined;
     while (running) {
-        try fullRender(world.surface, world.image, world.image_area, world.gui, world.bgColor);
+        renderImage(world.surface, world.image, world.image_area);
         sdl.display.updateSurface(world.window);
         _ = c.SDL_WaitEvent(&event);
-        onEvent(event, &user, &world, &running);
+        try onEvent(event, &user, &world, &running);
     }
     c.SDL_Log("pong\n");
 }
@@ -135,7 +134,7 @@ fn adjustMousePos(image_area: *sdl.Rect, x: *c_int, y: *c_int) void {
     y.* = y.* - image_area.y;
 }
 
-fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: *bool) void {
+fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: *bool) !void {
     switch (event.type) {
         c.SDL_KEYDOWN => {
             const key = event.key.keysym.scancode;
@@ -217,14 +216,11 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 c.SDL_WINDOWEVENT_MOVED => {},
                 c.SDL_WINDOWEVENT_RESIZED => {
                     warn("window resized {}x{}\n", .{ width, height });
-                    // c.SDL_FreeSurface(world.surface);
                     world.surface = sdl.display.initSurface(world.window) catch unreachable;
-                    _ = c.SDL_FillRect(world.surface, null, 0x000000);
+                    try fullRender(world.surface, world.image, world.image_area, world.gui, world.bgColor);
                 },
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
-                c.SDL_WINDOWEVENT_EXPOSED => {
-                    //world.surface = sdl.initSurface(world.window) catch unreachable;
-                },
+                c.SDL_WINDOWEVENT_EXPOSED => {},
                 else => warn("window event {}\n", .{event.window.event}),
             }
         },
