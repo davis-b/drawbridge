@@ -89,9 +89,15 @@ fn fullRender(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect,
 fn renderImage(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect) void {
     var rect = sdl.Rect{ .x = 0, .y = 0, .w = image_area.w, .h = image_area.h };
     sdl.display.blit(image, &rect, dst, image_area);
-    // _ = c.SDL_SetClipRect(dst, image_area);
-    // sdl.display.blit(image, null, dst, null);
-    // _ = c.SDL_SetClipRect(dst, null);
+    // TODO investigate using this
+    //  alternate method of clipping image into destination surface.
+    // Interesting side effect is no longer needing 'adjustMousePos' fn.
+    // Fullscreen fps seems to increase as well.
+    if (false) {
+        _ = c.SDL_SetClipRect(dst, image_area);
+        sdl.display.blit(image, null, dst, null);
+        _ = c.SDL_SetClipRect(dst, null);
+    }
 }
 
 /// Returns mouse position as a single integer
