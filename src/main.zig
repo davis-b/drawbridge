@@ -34,7 +34,7 @@ pub fn main() !void {
     var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
 
     var gui_surfaces = try gui.init();
-    var image_area: sdl.Rect = getImageArea(surface, &gui_surfaces);
+    var image_area: sdl.Rect = getImageArea(surface, surface_draw, &gui_surfaces);
 
     var running = true;
     var user = state.User{ .size = 10, .color = 0x777777 };
@@ -64,29 +64,29 @@ pub fn main() !void {
 
 /// Returns a rectangle representing the available area that our image can be blitted to
 ///  while respecting the gui.
-fn getImageArea(main_surface: *sdl.Surface, gui_surfaces: *gui.Surfaces) sdl.Rect {
+fn getImageArea(main_surface: *sdl.Surface, image: *sdl.Surface, gui_surfaces: *gui.Surfaces) sdl.Rect {
     var image_area = sdl.Rect{
         .x = gui_surfaces.left.w,
         .y = gui_surfaces.header.h,
         .w = main_surface.w - gui_surfaces.right.w,
         .h = main_surface.h - gui_surfaces.footer.h,
     };
+    // Places image in middle of available image area. Only necessary if image is not being cropped.
+    if (image.w < image_area.w) {
+        image_area.x += @divFloor((image_area.w - image_area.x) - image.w, 2);
+    }
     return image_area;
 }
 
 fn fullRender(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect, gui_s: *gui.Surfaces, bg_color: u32) !void {
     sdl.display.fillRect(dst, null, bg_color);
-    image_area.* = getImageArea(dst, gui_s);
+    image_area.* = getImageArea(dst, image, gui_s);
     renderImage(dst, image, image_area);
     gui.drawAll(gui_s);
     gui.blitAll(dst, gui_s);
 }
 
 fn renderImage(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect) void {
-    // TODO: This messes with adjustMousePos fn. Will need to move this code elsewhere
-    // Places image in middle of available image area.
-    // var rect: sdl.Rect = image_area.*;
-    // if (image.w > image_area.w) rect.x = @divFloor((image_area.w - image_area.x), 2) - @divFloor(image.w, 2);
     sdl.display.blit(image, null, dst, image_area);
 }
 
