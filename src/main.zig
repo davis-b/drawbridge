@@ -76,7 +76,8 @@ fn fullRender(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect,
     sdl.display.fillRect(dst, null, bg_color);
     image_area.* = getImageArea(dst, gui_s);
     renderImage(dst, image, image_area);
-    gui.renderGui(dst, gui_s);
+    gui.drawAll(gui_s);
+    gui.blitAll(dst, gui_s);
 }
 
 fn renderImage(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect) void {

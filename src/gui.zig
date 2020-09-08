@@ -66,28 +66,31 @@ pub fn drawRight(surface: *Surface) void {
     fillRect(surface, null, 0x0000ff);
 }
 
-/// Draws and blits entire GUI to dst surface.
-pub fn renderGui(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
+/// Draws all GUI elements
+pub fn drawAll(gui_s: *Surfaces) void {
+    drawHeader(gui_s.header, true, true);
+    drawFooter(gui_s.footer);
+    drawLeft(gui_s.left);
+    drawRight(gui_s.right);
+}
+
+/// Blits all GUI elements to dst surface
+pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
     {
-        drawHeader(gui_s.header, true, true);
         const mid = @divFloor((dst.w - gui_s.header.w), 2);
         var r = sdl.Rect{ .x = mid, .y = 0, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.header, null, dst, &r);
     }
     {
-        drawFooter(gui_s.footer);
         const mid = @divFloor((dst.w - gui_s.footer.w), 2);
         var r = sdl.Rect{ .x = mid, .y = dst.h - gui_s.footer.h, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.footer, null, dst, &r);
     }
     {
-        drawLeft(gui_s.left);
         var r = sdl.Rect{ .x = 0, .y = 0, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.left, null, dst, &r);
     }
     {
-        drawRight(gui_s.right);
-        //  var r = sdl.Rect{ .x = 0, .y = 0, .h = 0, .w = dst.w - gui_s.right.w };
         var r = sdl.Rect{ .x = dst.w - gui_s.right.w, .y = 0, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.right, null, dst, &r);
     }
