@@ -72,7 +72,7 @@ fn getImageArea(main_surface: *sdl.Surface, image: *sdl.Surface, gui_surfaces: *
         .h = main_surface.h - gui_surfaces.footer.h,
     };
     // Places image in middle of available image area. Only necessary if image is not being cropped.
-    if (image.w < image_area.w) {
+    if (image.w < image_area.w - gui_surfaces.left.w) {
         image_area.x += @divFloor((image_area.w - image_area.x) - image.w, 2);
     }
     return image_area;
