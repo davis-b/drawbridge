@@ -62,6 +62,8 @@ pub fn main() !void {
     c.SDL_Log("pong\n");
 }
 
+/// Returns a rectangle representing the available area that our image can be blitted to
+///  while respecting the gui.
 fn getImageArea(main_surface: *sdl.Surface, gui_surfaces: *gui.Surfaces) sdl.Rect {
     var image_area = sdl.Rect{
         .x = gui_surfaces.left.w,
