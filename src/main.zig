@@ -82,7 +82,7 @@ fn fullRender(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect,
 
 fn renderGui(dst: *c.SDL_Surface, gui_s: *gui.Surfaces) void {
     {
-        gui.drawHeader(true, true, gui_s.header);
+        gui.drawHeader(gui_s.header, true, true);
         const mid = @divFloor((dst.w - gui_s.header.w), 2);
         var r = sdl.Rect{ .x = mid, .y = 0, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.header, null, dst, &r);

@@ -43,7 +43,7 @@ fn initRight() !*Surface {
     return try sdl.display.initRgbSurface(0, Dimensions.right.w, Dimensions.right.h, 24);
 }
 
-pub fn drawHeader(a: bool, b: bool, surface: *Surface) void {
+pub fn drawHeader(surface: *Surface, a: bool, b: bool) void {
     const bg_color = 0xff0000;
     fillRect(surface, &c.SDL_Rect{ .x = 0, .y = 0, .w = 100, .h = 20 }, bg_color);
     if (a) {
