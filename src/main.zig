@@ -68,8 +68,8 @@ fn getImageArea(main_surface: *sdl.Surface, image: *sdl.Surface, gui_surfaces: *
     var image_area = sdl.Rect{
         .x = gui_surfaces.left.w,
         .y = gui_surfaces.header.h,
-        .w = main_surface.w - gui_surfaces.right.w,
-        .h = main_surface.h - gui_surfaces.footer.h,
+        .w = main_surface.w - (gui_surfaces.left.w + gui_surfaces.right.w),
+        .h = main_surface.h - (gui_surfaces.footer.h + gui_surfaces.header.h),
     };
     // Places image in middle of available image area. Only necessary if image is not being cropped.
     if (image.w < image_area.w - gui_surfaces.left.w) {
@@ -87,7 +87,11 @@ fn fullRender(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect,
 }
 
 fn renderImage(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect) void {
-    sdl.display.blit(image, null, dst, image_area);
+    var rect = sdl.Rect{ .x = 0, .y = 0, .w = image_area.w, .h = image_area.h };
+    sdl.display.blit(image, &rect, dst, image_area);
+    // _ = c.SDL_SetClipRect(dst, image_area);
+    // sdl.display.blit(image, null, dst, null);
+    // _ = c.SDL_SetClipRect(dst, null);
 }
 
 /// Returns mouse position as a single integer
