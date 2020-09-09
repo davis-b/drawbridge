@@ -30,7 +30,7 @@ pub fn main() !void {
     const image_width = 1300;
     const image_height = 800;
     const surface_draw = try sdl.display.initRgbSurface(0, image_width, image_height, 24);
-    var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 10, 10, 10);
+    var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 40, 40, 40);
     var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
 
     var gui_surfaces = try gui.init();
@@ -73,7 +73,7 @@ fn getImageArea(main_surface: *sdl.Surface, image: *sdl.Surface, gui_surfaces: *
     };
     // Places image in middle of available image area. Only necessary if image is not being cropped.
     if (image.w < image_area.w - gui_surfaces.left.w) {
-        image_area.x += @divFloor((image_area.w - image_area.x) - image.w, 2);
+        image_area.x = @divFloor((image_area.w - image.w) + gui_surfaces.right.w, 2);
     }
     return image_area;
 }
