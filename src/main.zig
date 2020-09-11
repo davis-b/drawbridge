@@ -30,7 +30,7 @@ pub fn main() !void {
     const image_width = 1300;
     const image_height = 800;
     const surface_draw = try sdl.display.initRgbSurface(0, image_width, image_height, 24);
-    var bgColor: u32 = c.SDL_MapRGB(surface_draw.format, 40, 40, 40);
+    var bg_color: u32 = c.SDL_MapRGB(surface_draw.format, 40, 40, 40);
     var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
 
     var gui_surfaces = try gui.init();
@@ -43,18 +43,20 @@ pub fn main() !void {
         .surface = surface,
         .image = surface_draw,
         .image_area = &image_area,
+        .image_offset = .{ .x = 0, .y = 0 },
         .gui = &gui_surfaces,
-        .bgColor = bgColor,
+        .bg_color = bg_color,
     };
     defer c.SDL_FreeSurface(world.surface);
     defer c.SDL_FreeSurface(world.image);
-    try fullRender(world.surface, world.image, world.image_area, world.gui, world.bgColor);
+    updateSize(&world);
+    fullRender(&world);
     draw.thing(fgColor, surface_draw);
     draw.squares(surface_draw);
 
     var event: c.SDL_Event = undefined;
     while (running) {
-        renderImage(world.surface, world.image, world.image_area);
+        renderImage(world.surface, world.image, world.image_area, world.image_offset);
         sdl.display.updateSurface(world.window);
         _ = c.SDL_WaitEvent(&event);
         try onEvent(event, &user, &world, &running);
@@ -78,17 +80,34 @@ fn getImageArea(main_surface: *sdl.Surface, image: *sdl.Surface, gui_surfaces: *
     return image_area;
 }
 
-fn fullRender(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect, gui_s: *gui.Surfaces, bg_color: u32) !void {
-    sdl.display.fillRect(dst, null, bg_color);
-    image_area.* = getImageArea(dst, image, gui_s);
-    renderImage(dst, image, image_area);
-    gui.drawAll(gui_s);
-    gui.blitAll(dst, gui_s);
+fn clampImageOffset(image: *sdl.Surface, image_area: *sdl.Rect, offset: *state.Dot) void {
+    clamp(c_int, &offset.x, 0, image.w - image_area.w);
+    clamp(c_int, &offset.y, 0, image.h - image_area.h);
 }
 
-fn renderImage(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect) void {
-    var rect = sdl.Rect{ .x = 0, .y = 0, .w = image_area.w, .h = image_area.h };
-    sdl.display.blit(image, &rect, dst, image_area);
+fn modifyImageOffset(world: *state.World, newx: ?c_int, newy: ?c_int) void {
+    if (newx) |x| world.image_offset.x += x;
+    if (newy) |y| world.image_offset.y += y;
+    clampImageOffset(world.image, world.image_area, &world.image_offset);
+}
+
+/// Updates world attributes that should change on resize
+fn updateSize(world: *state.World) void {
+    world.image_area.* = getImageArea(world.surface, world.image, world.gui);
+    clampImageOffset(world.image, world.image_area, &world.image_offset);
+}
+
+fn fullRender(world: *state.World) void {
+    sdl.display.fillRect(world.surface, null, world.bg_color);
+    renderImage(world.surface, world.image, world.image_area, world.image_offset);
+    gui.drawAll(world.gui);
+    gui.blitAll(world.surface, world.gui);
+}
+
+fn renderImage(dst: *sdl.Surface, image: *sdl.Surface, image_area: *sdl.Rect, image_offset: state.Dot) void {
+    var image_rect = sdl.Rect{ .x = image_offset.x, .y = image_offset.y, .w = image_area.w, .h = image_area.h };
+    // var rect = sdl.Rect{ .x = image_offset.x, .y = image_offset.y, .w = image_area.w, .h = image_area.h };
+    sdl.display.blit(image, &image_rect, dst, image_area);
     // TODO investigate using this
     //  alternate method of clipping image into destination surface.
     // Interesting side effect is no longer needing 'adjustMousePos' fn.
@@ -98,6 +117,11 @@ fn renderImage(dst: *c.SDL_Surface, image: *c.SDL_Surface, image_area: *sdl.Rect
         sdl.display.blit(image, null, dst, null);
         _ = c.SDL_SetClipRect(dst, null);
     }
+}
+
+fn clamp(comptime T: type, item: *T, min: T, max: T) void {
+    if (item.* > max) item.* = max;
+    if (item.* < min) item.* = min;
 }
 
 /// Returns mouse position as a single integer
@@ -129,6 +153,12 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 c.SDL_Scancode.SDL_SCANCODE_Q => running.* = false,
                 c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, std.time.milliTimestamp())),
                 c.SDL_Scancode.SDL_SCANCODE_M => world.mirrorDrawing = !world.mirrorDrawing,
+
+                c.SDL_Scancode.SDL_SCANCODE_1 => modifyImageOffset(world, -20, null),
+                c.SDL_Scancode.SDL_SCANCODE_2 => modifyImageOffset(world, 20, null),
+                c.SDL_Scancode.SDL_SCANCODE_3 => modifyImageOffset(world, null, -20),
+                c.SDL_Scancode.SDL_SCANCODE_4 => modifyImageOffset(world, null, 20),
+
                 c.SDL_Scancode.SDL_SCANCODE_C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
                     const pixels = @ptrCast([*]u32, cPixels);
@@ -204,7 +234,8 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 c.SDL_WINDOWEVENT_RESIZED => {
                     warn("window resized {}x{}\n", .{ width, height });
                     world.surface = sdl.display.initSurface(world.window) catch unreachable;
-                    try fullRender(world.surface, world.image, world.image_area, world.gui, world.bgColor);
+                    updateSize(world);
+                    fullRender(world);
                 },
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
                 c.SDL_WINDOWEVENT_EXPOSED => {},
