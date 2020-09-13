@@ -1,12 +1,12 @@
 const c = @import("c.zig");
 const gui = @import("gui.zig");
+const Dot = @import("misc.zig").Dot;
+const Whiteboard = @import("whiteboard.zig").Whiteboard;
 
 pub const World = struct {
     window: *c.SDL_Window,
     surface: *c.SDL_Surface,
-    image: *c.SDL_Surface,
-    image_area: *c.SDL_Rect,
-    image_offset: Dot, // when we can only see a portion of the image, the start of the image gets pushed this much from 0, 0
+    image: *Whiteboard,
     gui: *gui.Surfaces,
     drawing: bool = false,
     mirrorDrawing: bool = false,
@@ -19,9 +19,4 @@ pub const User = struct {
     //tool: tools.Tools,
     lastX: c_int = 0,
     lastY: c_int = 0,
-};
-
-pub const Dot = struct {
-    x: c_int,
-    y: c_int,
 };

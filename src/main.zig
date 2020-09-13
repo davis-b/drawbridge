@@ -8,6 +8,8 @@ const draw = @import("draw.zig");
 const tools = @import("tools.zig");
 const state = @import("state.zig");
 const gui = @import("gui.zig");
+const Dot = @import("misc.zig").Dot;
+const Whiteboard = @import("whiteboard.zig").Whiteboard;
 
 const c = @import("c.zig");
 const sdl = @import("sdl/index.zig");
@@ -27,36 +29,33 @@ pub fn main() !void {
     defer c.SDL_DestroyWindow(window);
     const surface = try sdl.display.initSurface(window);
 
+    var gui_surfaces = try gui.init();
+
     const image_width = 1300;
     const image_height = 800;
-    const surface_draw = try sdl.display.initRgbSurface(0, image_width, image_height, 24);
-    var bg_color: u32 = c.SDL_MapRGB(surface_draw.format, 40, 40, 40);
-    var fgColor: u32 = c.SDL_MapRGB(surface_draw.format, 150, 150, 150);
-
-    var gui_surfaces = try gui.init();
-    var image_area: sdl.Rect = getImageArea(surface, surface_draw, &gui_surfaces);
+    var whiteboard = try Whiteboard.init(surface, &gui_surfaces, image_width, image_height);
+    var bg_color: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
+    var fgColor: u32 = c.SDL_MapRGB(whiteboard.surface.format, 150, 150, 150);
 
     var running = true;
     var user = state.User{ .size = 10, .color = 0x777777 };
     var world = state.World{
         .window = window,
         .surface = surface,
-        .image = surface_draw,
-        .image_area = &image_area,
-        .image_offset = .{ .x = 0, .y = 0 },
+        .image = &whiteboard,
         .gui = &gui_surfaces,
         .bg_color = bg_color,
     };
     defer c.SDL_FreeSurface(world.surface);
-    defer c.SDL_FreeSurface(world.image);
-    updateSize(&world);
+    defer world.image.deinit();
+    world.image.updateOnParentResize(world.surface, world.gui);
     fullRender(&world);
-    draw.thing(fgColor, surface_draw);
-    draw.squares(surface_draw);
+    draw.thing(fgColor, whiteboard.surface);
+    draw.squares(whiteboard.surface);
 
     var event: c.SDL_Event = undefined;
     while (running) {
-        renderImage(world.surface, world.image, world.image_area, world.image_offset);
+        renderImage(world.surface, world.image);
         sdl.display.updateSurface(world.window);
         _ = c.SDL_WaitEvent(&event);
         try onEvent(event, &user, &world, &running);
@@ -64,64 +63,26 @@ pub fn main() !void {
     c.SDL_Log("pong\n");
 }
 
-/// Returns a rectangle representing the available area that our image can be blitted to
-///  while respecting the gui.
-fn getImageArea(main_surface: *sdl.Surface, image: *sdl.Surface, gui_surfaces: *gui.Surfaces) sdl.Rect {
-    var image_area = sdl.Rect{
-        .x = gui_surfaces.left.w,
-        .y = gui_surfaces.header.h,
-        .w = main_surface.w - (gui_surfaces.left.w + gui_surfaces.right.w),
-        .h = main_surface.h - (gui_surfaces.footer.h + gui_surfaces.header.h),
-    };
-    // Places image in middle of available image area. Only necessary if image is not being cropped.
-    if (image.w < image_area.w - gui_surfaces.left.w) {
-        image_area.x = @divFloor((image_area.w - image.w) + gui_surfaces.right.w, 2);
-    }
-    return image_area;
-}
-
-fn clampImageOffset(image: *sdl.Surface, image_area: *sdl.Rect, offset: *state.Dot) void {
-    clamp(c_int, &offset.x, 0, image.w - image_area.w);
-    clamp(c_int, &offset.y, 0, image.h - image_area.h);
-}
-
-fn modifyImageOffset(world: *state.World, newx: ?c_int, newy: ?c_int) void {
-    if (newx) |x| world.image_offset.x += x;
-    if (newy) |y| world.image_offset.y += y;
-    clampImageOffset(world.image, world.image_area, &world.image_offset);
-}
-
-/// Updates world attributes that should change on resize
-fn updateSize(world: *state.World) void {
-    world.image_area.* = getImageArea(world.surface, world.image, world.gui);
-    clampImageOffset(world.image, world.image_area, &world.image_offset);
-}
-
 fn fullRender(world: *state.World) void {
     sdl.display.fillRect(world.surface, null, world.bg_color);
-    renderImage(world.surface, world.image, world.image_area, world.image_offset);
+    renderImage(world.surface, world.image);
     gui.drawAll(world.gui);
     gui.blitAll(world.surface, world.gui);
 }
 
-fn renderImage(dst: *sdl.Surface, image: *sdl.Surface, image_area: *sdl.Rect, image_offset: state.Dot) void {
-    var image_rect = sdl.Rect{ .x = image_offset.x, .y = image_offset.y, .w = image_area.w, .h = image_area.h };
-    // var rect = sdl.Rect{ .x = image_offset.x, .y = image_offset.y, .w = image_area.w, .h = image_area.h };
-    sdl.display.blit(image, &image_rect, dst, image_area);
+fn renderImage(dst: *sdl.Surface, whiteboard: *Whiteboard) void {
+    var image_rect = sdl.Rect{ .x = whiteboard.crop_offset.x, .y = whiteboard.crop_offset.y, .w = whiteboard.render_area.w, .h = whiteboard.render_area.h };
+    sdl.display.blit(whiteboard.surface, &image_rect, dst, &whiteboard.render_area);
+
     // TODO investigate using this
     //  alternate method of clipping image into destination surface.
     // Interesting side effect is no longer needing 'adjustMousePos' fn.
     // Fullscreen fps seems to increase as well.
     if (false) {
-        _ = c.SDL_SetClipRect(dst, image_area);
-        sdl.display.blit(image, null, dst, null);
+        _ = c.SDL_SetClipRect(dst, whiteboard.render_area);
+        sdl.display.blit(whiteboard.surface, null, dst, null);
         _ = c.SDL_SetClipRect(dst, null);
     }
-}
-
-fn clamp(comptime T: type, item: *T, min: T, max: T) void {
-    if (item.* > max) item.* = max;
-    if (item.* < min) item.* = min;
 }
 
 /// Returns mouse position as a single integer
@@ -133,14 +94,14 @@ fn getMousePos(window_width: c_int) usize {
     return @intCast(usize, pos);
 }
 
-fn coordinatesAreInImage(image_area: *sdl.Rect, x: c_int, y: c_int) bool {
-    return (x > image_area.x and x < (image_area.x + image_area.w) and y > image_area.y and y < (image_area.y + image_area.h));
+fn coordinatesAreInImage(render_area: sdl.Rect, x: c_int, y: c_int) bool {
+    return (x > render_area.x and x < (render_area.x + render_area.w) and y > render_area.y and y < (render_area.y + render_area.h));
 }
 
 /// Mouse events will not, by default, give us the correct position for our use case.
 /// This is because we blit our drawable surface at an offset.
 /// This function adjusts coordinates to account for the offset, ensuring we 'draw' where expected.
-fn adjustMousePos(image_area: *sdl.Rect, x: *c_int, y: *c_int) void {
+fn adjustMousePos(image_area: sdl.Rect, x: *c_int, y: *c_int) void {
     x.* = x.* - image_area.x;
     y.* = y.* - image_area.y;
 }
@@ -154,10 +115,10 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, std.time.milliTimestamp())),
                 c.SDL_Scancode.SDL_SCANCODE_M => world.mirrorDrawing = !world.mirrorDrawing,
 
-                c.SDL_Scancode.SDL_SCANCODE_1 => modifyImageOffset(world, -20, null),
-                c.SDL_Scancode.SDL_SCANCODE_2 => modifyImageOffset(world, 20, null),
-                c.SDL_Scancode.SDL_SCANCODE_3 => modifyImageOffset(world, null, -20),
-                c.SDL_Scancode.SDL_SCANCODE_4 => modifyImageOffset(world, null, 20),
+                c.SDL_Scancode.SDL_SCANCODE_1 => world.image.modifyCropOffset(-20, null),
+                c.SDL_Scancode.SDL_SCANCODE_2 => world.image.modifyCropOffset(20, null),
+                c.SDL_Scancode.SDL_SCANCODE_3 => world.image.modifyCropOffset(null, -20),
+                c.SDL_Scancode.SDL_SCANCODE_4 => world.image.modifyCropOffset(null, 20),
 
                 c.SDL_Scancode.SDL_SCANCODE_C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
@@ -172,41 +133,41 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
         c.SDL_KEYUP => {},
 
         c.SDL_MOUSEMOTION => {
-            if (world.drawing and coordinatesAreInImage(world.image_area, event.motion.x, event.motion.y)) {
+            if (world.drawing and coordinatesAreInImage(world.image.render_area, event.motion.x, event.motion.y)) {
                 //warn("Motion: x:{} y:{}  xrel: {}  yrel: {}\n", event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
                 var x = event.motion.x;
                 var y = event.motion.y;
-                adjustMousePos(world.image_area, &x, &y);
+                adjustMousePos(world.image.render_area, &x, &y);
                 const deltaX = event.motion.xrel;
                 const deltaY = event.motion.yrel;
-                tools.pencil(x, y, deltaX, deltaY, user.color, world.image);
+                tools.pencil(x, y, deltaX, deltaY, user.color, world.image.surface);
                 if (world.mirrorDrawing) {
-                    const halfwidth = @divFloor(world.image.w, 2);
-                    const halfheight = @divFloor(world.image.h, 2);
+                    const halfwidth = @divFloor(world.image.surface.w, 2);
+                    const halfheight = @divFloor(world.image.surface.h, 2);
                     const deltaW = x - halfwidth;
                     const deltaH = y - halfheight;
                     // mirror x
-                    tools.pencil(halfwidth - deltaW, y, -deltaX, deltaY, user.color, world.image);
+                    tools.pencil(halfwidth - deltaW, y, -deltaX, deltaY, user.color, world.image.surface);
                     // mirror y
-                    tools.pencil(x, halfheight - deltaH, deltaX, -deltaY, user.color, world.image);
+                    tools.pencil(x, halfheight - deltaH, deltaX, -deltaY, user.color, world.image.surface);
                     // mirror xy (diagonal corner)
-                    tools.pencil(halfwidth - deltaW, halfheight - deltaH, -deltaX, -deltaY, user.color, world.image);
+                    tools.pencil(halfwidth - deltaW, halfheight - deltaH, -deltaX, -deltaY, user.color, world.image.surface);
                 }
             }
         },
         c.SDL_MOUSEBUTTONDOWN => {
-            if (coordinatesAreInImage(world.image_area, event.button.x, event.button.y)) {
-                world.drawing = true;
-                var x = event.button.x;
-                var y = event.button.y;
-                adjustMousePos(world.image_area, &x, &y);
-                tools.pencil(x, y, 0, 0, user.color, world.image);
+            world.drawing = true;
+            var x = event.button.x;
+            var y = event.button.y;
+            adjustMousePos(world.image.render_area, &x, &y);
+            if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
+                tools.pencil(x, y, 0, 0, user.color, world.image.surface);
                 if (event.button.button != 1) {
-                    draw.line2(x, x - user.lastX, y, y - user.lastY, user.color, world.image) catch unreachable;
+                    draw.line2(x, x - user.lastX, y, y - user.lastY, user.color, world.image.surface) catch unreachable;
                 }
-                user.lastX = x;
-                user.lastY = y;
             }
+            user.lastX = x;
+            user.lastY = y;
         },
         c.SDL_MOUSEBUTTONUP => {
             world.drawing = false;
@@ -234,7 +195,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 c.SDL_WINDOWEVENT_RESIZED => {
                     warn("window resized {}x{}\n", .{ width, height });
                     world.surface = sdl.display.initSurface(world.window) catch unreachable;
-                    updateSize(world);
+                    world.image.updateOnParentResize(world.surface, world.gui);
                     fullRender(world);
                 },
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
