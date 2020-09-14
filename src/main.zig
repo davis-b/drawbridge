@@ -109,18 +109,19 @@ fn adjustMousePos(image_area: sdl.Rect, x: *c_int, y: *c_int) void {
 fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: *bool) !void {
     switch (event.type) {
         c.SDL_KEYDOWN => {
-            const key = event.key.keysym.scancode;
+            // Both enums have same values, we're simply changing for a more convenient naming scheme
+            const key = @intToEnum(sdl.keyboard.Scancodes, @enumToInt(event.key.keysym.scancode));
             switch (key) {
-                c.SDL_Scancode.SDL_SCANCODE_Q => running.* = false,
-                c.SDL_Scancode.SDL_SCANCODE_A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, std.time.milliTimestamp())),
-                c.SDL_Scancode.SDL_SCANCODE_M => world.mirrorDrawing = !world.mirrorDrawing,
+                .Q => running.* = false,
+                .A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, std.time.milliTimestamp())),
+                .M => world.mirrorDrawing = !world.mirrorDrawing,
 
-                c.SDL_Scancode.SDL_SCANCODE_1 => world.image.modifyCropOffset(-20, null),
-                c.SDL_Scancode.SDL_SCANCODE_2 => world.image.modifyCropOffset(20, null),
-                c.SDL_Scancode.SDL_SCANCODE_3 => world.image.modifyCropOffset(null, -20),
-                c.SDL_Scancode.SDL_SCANCODE_4 => world.image.modifyCropOffset(null, 20),
+                .N_1 => world.image.modifyCropOffset(-20, null),
+                .N_2 => world.image.modifyCropOffset(20, null),
+                .N_3 => world.image.modifyCropOffset(null, -20),
+                .N_4 => world.image.modifyCropOffset(null, 20),
 
-                c.SDL_Scancode.SDL_SCANCODE_C => {
+                .C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
                     const pixels = @ptrCast([*]u32, cPixels);
                     const pos = getMousePos(world.surface.w);

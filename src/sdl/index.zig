@@ -1,6 +1,7 @@
 const c = @import("c");
 pub const display = @import("display.zig");
 pub const mouse = @import("mouse.zig");
+pub const keyboard = @import("keyboard.zig");
 
 pub const Rect = c.SDL_Rect;
 pub const Surface = c.SDL_Surface;
