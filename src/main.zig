@@ -110,7 +110,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
     switch (event.type) {
         c.SDL_KEYDOWN => {
             // Both enums have same values, we're simply changing for a more convenient naming scheme
-            const key = @intToEnum(sdl.keyboard.Scancodes, @enumToInt(event.key.keysym.scancode));
+            const key = @intToEnum(sdl.keyboard.Scancode, @enumToInt(event.key.keysym.scancode));
             switch (key) {
                 .Q => running.* = false,
                 .A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, std.time.milliTimestamp())),
