@@ -3,6 +3,7 @@ const gui = @import("gui.zig");
 const sdl = @import("sdl/index.zig");
 const misc = @import("misc.zig");
 
+/// Collection of data used to represent the area user(s) draw on
 pub const Whiteboard = struct {
     // The whiteboard drawing data
     surface: *sdl.Surface,
