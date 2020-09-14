@@ -1,3 +1,5 @@
+const math = @import("std").math;
+
 const c = @import("c.zig");
 const gui = @import("gui.zig");
 const sdl = @import("sdl/index.zig");
@@ -36,6 +38,10 @@ pub const Whiteboard = struct {
         if (newy) |y| self.crop_offset.y += y;
         clampCropOffset(self.surface, self.render_area, &self.crop_offset);
     }
+
+    fn isCropped(self: *Whiteboard) bool {
+        return internalIsCropped(self.surface, self.render_area);
+    }
 };
 
 /// Returns a rectangle representing the available area that our whiteboard's surface can be blitted to
@@ -48,10 +54,14 @@ fn getRenderArea(parent_surface: *sdl.Surface, image: *sdl.Surface, gui_surfaces
         .h = parent_surface.h - (gui_surfaces.footer.h + gui_surfaces.header.h),
     };
     // Places image in middle of available image area. Only necessary if image is not being cropped.
-    if (image.w < render_area.w - gui_surfaces.left.w) {
+    if (internalIsCropped(image, render_area)) {
         render_area.x = @divFloor((render_area.w - image.w) + gui_surfaces.right.w, 2);
     }
     return render_area;
+}
+
+fn internalIsCropped(image: *sdl.Surface, render_area: sdl.Rect) bool {
+    return image.w < math.absInt(render_area.w - render_area.x) catch @panic("Whiteboard internal is cropped; Unexpected absInt error\n");
 }
 
 fn clampCropOffset(image: *sdl.Surface, render_area: sdl.Rect, offset: *misc.Dot) void {
