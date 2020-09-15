@@ -71,7 +71,12 @@ fn fullRender(world: *state.World) void {
 }
 
 fn renderImage(dst: *sdl.Surface, whiteboard: *Whiteboard) void {
-    var image_rect = sdl.Rect{ .x = whiteboard.crop_offset.x, .y = whiteboard.crop_offset.y, .w = whiteboard.render_area.w, .h = whiteboard.render_area.h };
+    var image_rect = sdl.Rect{
+        .x = whiteboard.crop_offset.x,
+        .y = whiteboard.crop_offset.y,
+        .w = whiteboard.render_area.w,
+        .h = whiteboard.render_area.h,
+    };
     sdl.display.blit(whiteboard.surface, &image_rect, dst, &whiteboard.render_area);
 
     // TODO investigate using this
