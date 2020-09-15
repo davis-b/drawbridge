@@ -139,7 +139,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
         c.SDL_KEYUP => {},
 
         c.SDL_MOUSEMOTION => {
-            if (world.drawing and coordinatesAreInImage(world.image.render_area, event.motion.x, event.motion.y)) {
+            if (user.drawing and coordinatesAreInImage(world.image.render_area, event.motion.x, event.motion.y)) {
                 //warn("Motion: x:{} y:{}  xrel: {}  yrel: {}\n", event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
                 var x = event.motion.x;
                 var y = event.motion.y;
@@ -162,7 +162,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
             }
         },
         c.SDL_MOUSEBUTTONDOWN => {
-            world.drawing = true;
+            user.drawing = true;
             var x = event.button.x;
             var y = event.button.y;
             adjustMousePos(world.image, &x, &y);
@@ -176,7 +176,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
             user.lastY = y;
         },
         c.SDL_MOUSEBUTTONUP => {
-            world.drawing = false;
+            user.drawing = false;
         },
         c.SDL_MOUSEWHEEL => {
             var skip = false;

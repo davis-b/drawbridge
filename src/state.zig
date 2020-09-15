@@ -8,12 +8,12 @@ pub const World = struct {
     surface: *c.SDL_Surface,
     image: *Whiteboard,
     gui: *gui.Surfaces,
-    drawing: bool = false,
     mirrorDrawing: bool = false,
     bg_color: u32 = 0x090909,
 };
 
 pub const User = struct {
+    drawing: bool = false,
     size: u8,
     color: u32,
     //tool: tools.Tools,
