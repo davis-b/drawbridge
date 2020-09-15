@@ -106,9 +106,9 @@ fn coordinatesAreInImage(render_area: sdl.Rect, x: c_int, y: c_int) bool {
 /// Mouse events will not, by default, give us the correct position for our use case.
 /// This is because we blit our drawable surface at an offset.
 /// This function adjusts coordinates to account for the offset, ensuring we 'draw' where expected.
-fn adjustMousePos(image_area: sdl.Rect, x: *c_int, y: *c_int) void {
-    x.* = x.* - image_area.x;
-    y.* = y.* - image_area.y;
+fn adjustMousePos(image: *Whiteboard, x: *c_int, y: *c_int) void {
+    x.* += image.crop_offset.x - image.render_area.x;
+    y.* += image.crop_offset.y - image.render_area.y;
 }
 
 fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: *bool) !void {
@@ -143,7 +143,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 //warn("Motion: x:{} y:{}  xrel: {}  yrel: {}\n", event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
                 var x = event.motion.x;
                 var y = event.motion.y;
-                adjustMousePos(world.image.render_area, &x, &y);
+                adjustMousePos(world.image, &x, &y);
                 const deltaX = event.motion.xrel;
                 const deltaY = event.motion.yrel;
                 tools.pencil(x, y, deltaX, deltaY, user.color, world.image.surface);
@@ -165,7 +165,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
             world.drawing = true;
             var x = event.button.x;
             var y = event.button.y;
-            adjustMousePos(world.image.render_area, &x, &y);
+            adjustMousePos(world.image, &x, &y);
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
                 tools.pencil(x, y, 0, 0, user.color, world.image.surface);
                 if (event.button.button != 1) {
