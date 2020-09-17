@@ -82,16 +82,16 @@ pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
         sdl.display.blit(gui_s.header, null, dst, &r);
     }
     {
-        const mid = @divFloor((dst.w - gui_s.footer.w), 2);
-        var r = sdl.Rect{ .x = mid, .y = dst.h - gui_s.footer.h, .h = 0, .w = 0 };
-        sdl.display.blit(gui_s.footer, null, dst, &r);
-    }
-    {
-        var r = sdl.Rect{ .x = 0, .y = 0, .h = 0, .w = 0 };
+        var r = sdl.Rect{ .x = 0, .y = gui_s.header.h, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.left, null, dst, &r);
     }
     {
-        var r = sdl.Rect{ .x = dst.w - gui_s.right.w, .y = 0, .h = 0, .w = 0 };
+        var r = sdl.Rect{ .x = dst.w - gui_s.right.w, .y = gui_s.header.h, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.right, null, dst, &r);
+    }
+    {
+        const mid = @divFloor((dst.w - gui_s.footer.w), 2);
+        var r = sdl.Rect{ .x = mid, .y = dst.h - gui_s.footer.h, .h = 0, .w = 0 };
+        sdl.display.blit(gui_s.footer, null, dst, &r);
     }
 }
