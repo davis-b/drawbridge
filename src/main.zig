@@ -171,6 +171,8 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                 if (event.button.button != 1) {
                     draw.line2(x, x - user.lastX, y, y - user.lastY, user.color, world.image.surface) catch unreachable;
                 }
+            } else {
+                gui.handleButtonPress(world.surface, world.gui, event.button.x, event.button.y);
             }
             user.lastX = x;
             user.lastY = y;
