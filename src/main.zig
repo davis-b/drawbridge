@@ -77,16 +77,17 @@ fn renderImage(dst: *sdl.Surface, whiteboard: *Whiteboard) void {
         .w = whiteboard.render_area.w,
         .h = whiteboard.render_area.h,
     };
-    sdl.display.blit(whiteboard.surface, &image_rect, dst, &whiteboard.render_area);
 
     // TODO investigate using this
     //  alternate method of clipping image into destination surface.
     // Interesting side effect is no longer needing 'adjustMousePos' fn.
     // Fullscreen fps seems to increase as well.
     if (false) {
-        _ = c.SDL_SetClipRect(dst, whiteboard.render_area);
+        _ = c.SDL_SetClipRect(dst, &whiteboard.render_area);
         sdl.display.blit(whiteboard.surface, null, dst, null);
         _ = c.SDL_SetClipRect(dst, null);
+    } else {
+        sdl.display.blit(whiteboard.surface, &image_rect, dst, &whiteboard.render_area);
     }
 }
 
