@@ -1,3 +1,5 @@
+// Designed to be compiled with zig version 0.8.0
+
 const Builder = @import("std").build.Builder;
 
 pub fn build(b: *Builder) void {

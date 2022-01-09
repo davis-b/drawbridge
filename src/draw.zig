@@ -16,7 +16,7 @@ pub fn putRectangle(x: c_int, y: c_int, color: u32, surface: *c.SDL_Surface) voi
     _ = c.SDL_FillRect(surface, &Rectangle, color);
 }
 
-pub fn circle(window: var, x: u64, y: u64, radius: u32) void {
+pub fn circle(window: anytype, x: u64, y: u64, radius: u32) void {
     var index: u32 = 0;
     while (index != radius) : (index += 1) {
         const delta = radius - index;

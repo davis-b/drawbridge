@@ -119,7 +119,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
             const key = @intToEnum(sdl.keyboard.Scancode, @enumToInt(event.key.keysym.scancode));
             switch (key) {
                 .Q => running.* = false,
-                .A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, std.time.milliTimestamp())),
+                .A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, @intCast(u64, std.time.milliTimestamp()))),
                 .M => world.mirrorDrawing = !world.mirrorDrawing,
 
                 .N_1 => world.image.modifyCropOffset(-20, null),

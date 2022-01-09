@@ -23,17 +23,17 @@ pub const Whiteboard = struct {
         };
     }
 
-    fn deinit(self: *Whiteboard) void {
+    pub fn deinit(self: *Whiteboard) void {
         c.SDL_FreeSurface(self.surface);
     }
 
     /// Updates attributes that require change on parent resize
-    fn updateOnParentResize(self: *Whiteboard, parent: *sdl.Surface, gui_s: *gui.Surfaces) void {
+    pub fn updateOnParentResize(self: *Whiteboard, parent: *sdl.Surface, gui_s: *gui.Surfaces) void {
         self.render_area = getRenderArea(parent, self.surface, gui_s);
         clampCropOffset(self.surface, self.render_area, &self.crop_offset);
     }
 
-    fn modifyCropOffset(self: *Whiteboard, newx: ?c_int, newy: ?c_int) void {
+    pub fn modifyCropOffset(self: *Whiteboard, newx: ?c_int, newy: ?c_int) void {
         if (newx) |x| self.crop_offset.x += x;
         if (newy) |y| self.crop_offset.y += y;
         clampCropOffset(self.surface, self.render_area, &self.crop_offset);
