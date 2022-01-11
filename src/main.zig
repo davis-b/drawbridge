@@ -161,6 +161,12 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                     // mirror xy (diagonal corner)
                     tools.pencil(halfwidth - deltaW, halfheight - deltaH, -deltaX, -deltaY, user.color, world.image.surface);
                 }
+            } else {
+                // Preview what would happen if the user started drawing.
+                // TODO add a layer that allows temporary stuff like this to appear at all.
+                // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
+                // Currently the image blits on top of this and removes it.
+                // draw.putRectangle(event.motion.x, event.motion.y, user.color, world.surface);
             }
         },
         c.SDL_MOUSEBUTTONDOWN => {
