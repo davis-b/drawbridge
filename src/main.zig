@@ -35,7 +35,7 @@ pub fn main() !void {
     const image_height = 800;
     var whiteboard = try Whiteboard.init(surface, &gui_surfaces, image_width, image_height);
     var bg_color: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
-    var fgColor: u32 = c.SDL_MapRGB(whiteboard.surface.format, 150, 150, 150);
+    var fg_color: u32 = c.SDL_MapRGB(whiteboard.surface.format, 150, 150, 150);
 
     var running = true;
     var user = state.User{ .size = 10, .color = 0x777777 };
@@ -50,7 +50,7 @@ pub fn main() !void {
     defer world.image.deinit();
     world.image.updateOnParentResize(world.surface, world.gui);
     fullRender(&world);
-    draw.thing(fgColor, whiteboard.surface);
+    draw.thing(fg_color, whiteboard.surface);
     draw.squares(whiteboard.surface);
 
     var event: c.SDL_Event = undefined;
