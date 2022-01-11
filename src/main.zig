@@ -61,7 +61,7 @@ pub fn main() !void {
             try onEvent(event, &user, &world, &running);
         }
     }
-    c.SDL_Log("pong\n");
+    c.SDL_Log("Drawbridge raised.\n");
 }
 
 fn fullRender(world: *state.World) void {
