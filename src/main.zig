@@ -57,8 +57,9 @@ pub fn main() !void {
     while (running) {
         renderImage(world.surface, world.image);
         sdl.display.updateSurface(world.window);
-        _ = c.SDL_WaitEvent(&event);
-        try onEvent(event, &user, &world, &running);
+        while (c.SDL_PollEvent(&event) == 1) {
+            try onEvent(event, &user, &world, &running);
+        }
     }
     c.SDL_Log("pong\n");
 }
