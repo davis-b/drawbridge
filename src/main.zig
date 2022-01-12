@@ -204,17 +204,15 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
         },
         c.SDL_WINDOWEVENT => {
             const e = event.window;
-            const width = event.window.data1;
-            const height = event.window.data2;
             switch (event.window.event) {
                 c.SDL_WINDOWEVENT_MOVED => {},
-                c.SDL_WINDOWEVENT_RESIZED => {
-                    warn("window resized {}x{}\n", .{ width, height });
+                c.SDL_WINDOWEVENT_RESIZED => {}, // Subset of size_changed event. Does not get triggered if resize originated from SDL code.
+                c.SDL_WINDOWEVENT_SIZE_CHANGED => {
+                    warn("window resized {}x{}\n", .{ e.data1, e.data2 });
                     world.surface = sdl.display.initSurface(world.window) catch unreachable;
                     world.image.updateOnParentResize(world.surface, world.gui);
                     fullRender(world);
                 },
-                c.SDL_WINDOWEVENT_SIZE_CHANGED => {}, // warn("window size changed {}x{}\n", .{ width, height }),
                 c.SDL_WINDOWEVENT_EXPOSED => {},
                 else => warn("window event {}\n", .{event.window.event}),
             }
