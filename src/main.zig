@@ -4,7 +4,7 @@ const assert = std.debug.assert;
 
 const Dot = @import("misc.zig").Dot;
 const draw = @import("draw.zig");
-const Event = @import("events.zig").Event;
+const NetAction = @import("net_actions.zig").Action;
 const gui = @import("gui.zig");
 const state = @import("state.zig");
 const tools = @import("tools.zig");
@@ -34,10 +34,9 @@ pub fn main() !void {
     const image_height = 800;
     var whiteboard = try Whiteboard.init(surface, &gui_surfaces, image_width, image_height);
     var bg_color: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
-    var fg_color: u32 = c.SDL_MapRGB(whiteboard.surface.format, 150, 150, 150);
 
     var running = true;
-    var user = state.User{ .size = 10, .color = 0x777777 };
+    var local_user = state.User{ .color = 0x777777 };
     var world = state.World{
         .window = window,
         .surface = surface,
@@ -49,7 +48,7 @@ pub fn main() !void {
     defer world.image.deinit();
     world.image.updateOnParentResize(world.surface, world.gui);
     fullRender(&world);
-    draw.thing(fg_color, whiteboard.surface);
+    draw.thing(local_user.color, whiteboard.surface);
     draw.squares(whiteboard.surface);
 
     var event: c.SDL_Event = undefined;
@@ -57,7 +56,11 @@ pub fn main() !void {
         renderImage(world.surface, world.image);
         sdl.display.updateSurface(world.window);
         while (c.SDL_PollEvent(&event) == 1) {
-            try onEvent(event, &user, &world, &running);
+            const maybe_action = onEvent(event, &world, &local_user, &running);
+            if (maybe_action) |action| {
+                doAction(action, &local_user, &whiteboard);
+                // send action over network, or put into an outgoing queue that is sent by other thread
+            }
         }
     }
     c.SDL_Log("Drawbridge raised.\n");
@@ -112,7 +115,7 @@ fn adjustMousePos(image: *Whiteboard, x: *c_int, y: *c_int) void {
     y.* += image.crop_offset.y - image.render_area.y;
 }
 
-fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: *bool) !void {
+fn onEvent(event: c.SDL_Event, world: *state.World, user: *state.User, running: *bool) ?NetAction {
     switch (event.type) {
         c.SDL_KEYDOWN => {
             // Both enums have same values, we're simply changing for a more convenient naming scheme
@@ -132,7 +135,7 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
                     const pixels = @ptrCast([*]u32, cPixels);
                     const pos = getMousePos(world.surface.w);
                     const color = pixels[pos];
-                    user.color = color;
+                    return NetAction{ .color_change = color };
                 },
                 else => warn("key pressed: {}\n", .{key}),
             }
@@ -140,61 +143,46 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
         c.SDL_KEYUP => {},
 
         c.SDL_MOUSEMOTION => {
-            if (user.drawing and coordinatesAreInImage(world.image.render_area, event.motion.x, event.motion.y)) {
-                //warn("Motion: x:{} y:{}  xrel: {}  yrel: {}\n", event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
-                var x = event.motion.x;
-                var y = event.motion.y;
-                adjustMousePos(world.image, &x, &y);
-                const deltaX = event.motion.xrel;
-                const deltaY = event.motion.yrel;
-                tools.pencil(x, y, deltaX, deltaY, user.color, world.image.surface);
-                if (world.mirrorDrawing) {
-                    const halfwidth = @divFloor(world.image.surface.w, 2);
-                    const halfheight = @divFloor(world.image.surface.h, 2);
-                    const deltaW = x - halfwidth;
-                    const deltaH = y - halfheight;
-                    // mirror x
-                    tools.pencil(halfwidth - deltaW, y, -deltaX, deltaY, user.color, world.image.surface);
-                    // mirror y
-                    tools.pencil(x, halfheight - deltaH, deltaX, -deltaY, user.color, world.image.surface);
-                    // mirror xy (diagonal corner)
-                    tools.pencil(halfwidth - deltaW, halfheight - deltaH, -deltaX, -deltaY, user.color, world.image.surface);
-                }
-            } else {
-                // Preview what would happen if the user started drawing.
-                // TODO add a layer that allows temporary stuff like this to appear at all.
-                // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
-                // Currently the image blits on top of this and removes it.
-                // draw.putRectangle(event.motion.x, event.motion.y, user.color, world.surface);
-            }
+            var x = event.motion.x;
+            var y = event.motion.y;
+            const in_image = coordinatesAreInImage(world.image.render_area, x, y);
+            // TODO
+            // Does this adjust within the frame of the SDL window?
+            // What we really want are the coordinates relative to the Whiteboard image itself.
+            // So that in the SDL window maybe we have 500, 500. Yet it's at the top of the draw area. Also our image is cropped 100 off the top.
+            // In that scenario we would want to derive 100 for y, as we're at the top of the image and it's cropped by 100.
+            adjustMousePos(world.image, &x, &y);
+            return NetAction{ .cursor_move = .{ .pos = .{ .x = x, .y = y }, .delta = .{ .x = event.motion.xrel, .y = event.motion.yrel } } };
         },
         c.SDL_MOUSEBUTTONDOWN => {
-            user.drawing = true;
             var x = event.button.x;
             var y = event.button.y;
             adjustMousePos(world.image, &x, &y);
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
-                tools.pencil(x, y, 0, 0, user.color, world.image.surface);
-                if (event.button.button != 1) {
-                    draw.line2(x, x - user.lastX, y, y - user.lastY, user.color, world.image.surface) catch unreachable;
-                }
+                return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
             } else {
                 gui.handleButtonPress(world.surface, world.gui, event.button.x, event.button.y);
             }
-            user.lastX = x;
-            user.lastY = y;
         },
         c.SDL_MOUSEBUTTONUP => {
-            user.drawing = false;
+            var x = event.button.x;
+            var y = event.button.y;
+            adjustMousePos(world.image, &x, &y);
+            return NetAction{ .mouse_release = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
         },
         c.SDL_MOUSEWHEEL => {
-            var skip = false;
-            if (event.wheel.y == -1 and (draw.Rectangle.h == 1 or draw.Rectangle.w == 1)) skip = true;
-            if (event.wheel.y == 1 and (draw.Rectangle.h == maxDrawSize or draw.Rectangle.w == maxDrawSize)) skip = true;
-            //warn("mousewheel {}\n", event.wheel);
-            if (!skip) {
-                draw.Rectangle.h += event.wheel.y;
-                draw.Rectangle.w += event.wheel.y;
+            const TOOL_RESIZE_T: type = memberType(NetAction, "tool_resize");
+            var new: i64 = event.wheel.y + user.size;
+            if (new < 1) {
+                new = 1;
+            } else if (new > std.math.maxInt(TOOL_RESIZE_T)) {
+                new = std.math.maxInt(TOOL_RESIZE_T);
+            }
+
+            const final_new = @intCast(TOOL_RESIZE_T, new);
+
+            if (final_new != user.size) {
+                return NetAction{ .tool_resize = final_new };
             }
         },
         c.SDL_QUIT => {
@@ -220,4 +208,50 @@ fn onEvent(event: c.SDL_Event, user: *state.User, world: *state.World, running: 
         c.SDL_TEXTINPUT => {},
         else => warn("unexpected event # {} \n", .{event.type}),
     }
+    return null;
+}
+
+fn doAction(action: NetAction, user: *state.User, whiteboard: *Whiteboard) void {
+    switch (action) {
+        .tool_change => |new_tool| user.tool = new_tool,
+        .tool_resize => |size| user.size = size,
+        .cursor_move => |move| {
+            if (user.drawing) {
+                tools.pencil(move.pos.x, move.pos.y, move.delta.x, move.delta.y, user, whiteboard.surface);
+            } else {
+                // Preview what would happen if the user started drawing.
+                // TODO add a layer that allows temporary stuff like this to appear at all.
+                // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
+                // Currently the image blits on top of this and removes it.
+            }
+        },
+        .mouse_press => |click| {
+            user.drawing = true;
+            const x = click.pos.x;
+            const y = click.pos.y;
+            tools.pencil(x, y, 0, 0, user, whiteboard.surface);
+            // if (click.button != 1) { // != LMB
+            //     draw.line2(x, x - user.lastX, y, y - user.lastY, user, whiteboard.surface) catch unreachable;
+            // }
+            user.lastX = x;
+            user.lastY = y;
+        },
+        .mouse_release => |click| {
+            user.drawing = false;
+        },
+        .color_change => |color| user.color = color,
+        .layer_switch => |x| {
+            //
+        },
+    }
+}
+
+pub fn memberType(comptime T: type, name: []const u8) type {
+    inline for (std.meta.fields(T)) |f| {
+        if (std.mem.eql(u8, f.name, name)) {
+            return f.field_type;
+        }
+    }
+    // @panic("Unable to find field?");
+    unreachable;
 }

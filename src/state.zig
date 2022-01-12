@@ -2,6 +2,7 @@ const c = @import("c.zig");
 const gui = @import("gui.zig");
 const Dot = @import("misc.zig").Dot;
 const Whiteboard = @import("whiteboard.zig").Whiteboard;
+const Tool = @import("tools.zig").Tool;
 
 pub const World = struct {
     window: *c.SDL_Window,
@@ -14,9 +15,9 @@ pub const World = struct {
 
 pub const User = struct {
     drawing: bool = false,
-    size: u8,
+    size: u8 = 1,
     color: u32,
-    //tool: tools.Tools,
+    tool: Tool = .pencil,
     lastX: c_int = 0,
     lastY: c_int = 0,
 };
