@@ -1,14 +1,13 @@
 const std = @import("std");
-const os = std.os;
-const math = std.math;
 const warn = std.debug.warn;
 const assert = std.debug.assert;
 
-const draw = @import("draw.zig");
-const tools = @import("tools.zig");
-const state = @import("state.zig");
-const gui = @import("gui.zig");
 const Dot = @import("misc.zig").Dot;
+const draw = @import("draw.zig");
+const Event = @import("events.zig").Event;
+const gui = @import("gui.zig");
+const state = @import("state.zig");
+const tools = @import("tools.zig");
 const Whiteboard = @import("whiteboard.zig").Whiteboard;
 
 const c = @import("c.zig");
@@ -17,7 +16,7 @@ const sdl = @import("sdl/index.zig");
 const changeColors = c.changeColors;
 const inverseColors = c.inverseColors;
 
-const maxDrawSize: c_int = math.maxInt(c_int);
+const maxDrawSize: c_int = std.math.maxInt(c_int);
 
 pub fn main() !void {
     try sdl.init();
