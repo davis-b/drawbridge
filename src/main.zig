@@ -171,16 +171,12 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *state.User, running: 
             return NetAction{ .mouse_release = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
         },
         c.SDL_MOUSEWHEEL => {
-            const TOOL_RESIZE_T: type = misc.memberType(NetAction, "tool_resize");
+            const TOOL_RESIZE_T: type = std.meta.TagPayload(NetAction, .tool_resize);
+
             var new: i64 = event.wheel.y + user.size;
-            if (new < 1) {
-                new = 1;
-            } else if (new > std.math.maxInt(TOOL_RESIZE_T)) {
-                new = std.math.maxInt(TOOL_RESIZE_T);
-            }
+            misc.clamp(i64, &new, 1, std.math.maxInt(TOOL_RESIZE_T));
 
             const final_new = @intCast(TOOL_RESIZE_T, new);
-
             if (final_new != user.size) {
                 return NetAction{ .tool_resize = final_new };
             }
