@@ -2,7 +2,7 @@ const std = @import("std");
 const warn = std.debug.warn;
 const assert = std.debug.assert;
 
-const Dot = @import("misc.zig").Dot;
+const misc = @import("misc.zig");
 const draw = @import("draw.zig");
 const NetAction = @import("net_actions.zig").Action;
 const gui = @import("gui.zig");
@@ -171,7 +171,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *state.User, running: 
             return NetAction{ .mouse_release = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
         },
         c.SDL_MOUSEWHEEL => {
-            const TOOL_RESIZE_T: type = memberType(NetAction, "tool_resize");
+            const TOOL_RESIZE_T: type = misc.memberType(NetAction, "tool_resize");
             var new: i64 = event.wheel.y + user.size;
             if (new < 1) {
                 new = 1;
@@ -244,14 +244,4 @@ fn doAction(action: NetAction, user: *state.User, whiteboard: *Whiteboard) void 
             //
         },
     }
-}
-
-pub fn memberType(comptime T: type, name: []const u8) type {
-    inline for (std.meta.fields(T)) |f| {
-        if (std.mem.eql(u8, f.name, name)) {
-            return f.field_type;
-        }
-    }
-    // @panic("Unable to find field?");
-    unreachable;
 }
