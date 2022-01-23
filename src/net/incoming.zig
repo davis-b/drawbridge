@@ -79,7 +79,7 @@ pub fn startReceiving(context: ThreadContext) void {
                 // When history has been sent, free it and treat the new client as any other would be treated.
                 //
 
-                const world = std.mem.bytesToValue(packet.WorldState, @ptrCast(*[@sizeOf(packet.WorldState)]u8, message.data));
+                const world = std.mem.bytesToValue(packet.WorldState, @ptrCast(*const [@sizeOf(packet.WorldState)]u8, message.data));
                 pipe.meta.put(MetaEvent{ .state_set = world }) catch {
                     std.debug.print("Network read thread encountered a queue error while adding to meta queue [state set].\n", .{});
                     break;

@@ -43,12 +43,12 @@ pub const Whiteboard = struct {
         return internalIsCropped(self.surface, self.render_area);
     }
 
-    pub fn serialize(self: *Whiteboard) []u8 {
+    pub fn serialize(self: *Whiteboard) []const u8 {
         const pixels = @ptrCast([*]u8, self.surface.pixels);
         return pixels[0..self.imageByteSize(self.surface)];
     }
 
-    pub fn deserialize(self: *Whiteboard, imageData: []u8) void {
+    pub fn deserialize(self: *Whiteboard, imageData: []const u8) void {
         _ = c.SDL_LockSurface(self.surface);
         defer c.SDL_UnlockSurface(self.surface);
         const pixels = @ptrCast([*]u8, self.surface.pixels);

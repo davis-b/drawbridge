@@ -20,7 +20,20 @@ pub const InKind = packed enum(u8) {
 pub const InPacket = struct {
     kind: InKind,
     user: u8,
-    data: []u8,
+    data: []const u8,
+};
+
+pub const OutKind = packed enum(u8) {
+    /// A regular paint action.
+    action,
+
+    /// Our world state, as requested.
+    state,
+};
+
+pub const OutPacket = struct {
+    kind: OutKind,
+    data: []const u8,
 };
 
 /// A user with its ID, for use in conjunction with sending WorldState.
@@ -32,7 +45,7 @@ pub const UniqueUser = struct {
 /// Used to send and receive the state of the program when a user enters a room.
 pub const WorldState = struct {
     users: []UniqueUser,
-    image: []u8,
+    image: []const u8,
     // TODO
     // image_size: Dot,
     // layers: u8,
