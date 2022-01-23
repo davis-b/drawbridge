@@ -7,7 +7,7 @@ const misc = @import("misc.zig");
 
 /// Collection of data used to represent the area user(s) draw on
 pub const Whiteboard = struct {
-    // The whiteboard drawing data
+    // The actual image.
     surface: *sdl.Surface,
     // The sub-area of the whole parent surface that we are allowed to render into, accounts for GUI
     render_area: sdl.Rect,
@@ -41,6 +41,26 @@ pub const Whiteboard = struct {
 
     fn isCropped(self: *Whiteboard) bool {
         return internalIsCropped(self.surface, self.render_area);
+    }
+
+    pub fn serialize(self: *Whiteboard) []u8 {
+        const pixels = @ptrCast([*]u8, self.surface.pixels);
+        return pixels[0..self.imageByteSize(self.surface)];
+    }
+
+    pub fn deserialize(self: *Whiteboard, imageData: []u8) void {
+        _ = c.SDL_LockSurface(self.surface);
+        defer c.SDL_UnlockSurface(self.surface);
+        const pixels = @ptrCast([*]u8, self.surface.pixels);
+        for (imageData) |p, n| {
+            pixels[n] = p;
+        }
+    }
+
+    fn imageByteSize(self: *Whiteboard, image: *sdl.Surface) usize {
+        const height: usize = @intCast(usize, self.surface.h);
+        const pitch: usize = @intCast(usize, self.surface.pitch);
+        return height * pitch;
     }
 };
 

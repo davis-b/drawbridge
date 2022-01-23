@@ -1,9 +1,9 @@
 const draw = @import("draw.zig");
-const User = @import("state.zig").User;
+const User = @import("users.zig").User;
 
 const c = @import("c.zig");
 
-pub const Tool = enum {
+pub const Tool = enum(u8) {
     pencil,
     eraser,
     bucket,

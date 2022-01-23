@@ -9,6 +9,9 @@ pub fn build(b: *Builder) void {
 
     exe.addPackagePath("c", "src/c.zig");
     exe.addPackagePath("misc", "src/misc.zig");
+    exe.addPackagePath("mot", "../mot/src/extras.zig"); // TODO put MOT on github and use it as a submodule within this dir
+    exe.addPackagePath("queue", "../common/queue.zig"); // TODO put this on github and use it as a submodule within this dir
+    exe.addPackagePath("parser", "../common/parser.zig"); // TODO put this on github and use it as a submodule within this dir
 
     const lib_cflags = [_][]const u8{"-std=c99"};
     exe.addCSourceFile("src/setpixel.c", lib_cflags[0..]);
