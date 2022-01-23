@@ -1,6 +1,5 @@
 const std = @import("std");
 const warn = std.debug.warn;
-const assert = std.debug.assert;
 
 const parser = @import("parser");
 
