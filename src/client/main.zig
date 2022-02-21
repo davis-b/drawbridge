@@ -169,6 +169,7 @@ pub fn main() !void {
                         defer allocator.free(userList);
                         // Peer ID 0 is reserved for the local user.
                         // No peer is assigned the ID of 0 on the server or any client.
+                        // TODO when creating unique users, the world state packet should provide us with a user ID for ourselves so the server doesn't have to fill that in for us.
                         userList[0] = .{ .user = local_user, .id = 0 };
                         var iter = world.peers.iterator();
                         var index: usize = 1;
@@ -350,6 +351,8 @@ fn doAction(action: NetAction, user: *users.User, whiteboard: *Whiteboard) void 
                 // TODO add a layer that allows temporary stuff like this to appear at all.
                 // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
                 // Currently the image blits on top of this and removes it.
+                // or do something like this:
+                // tools.pencil(move.pos.x, move.pos.y, 0, 0, user, world.surface);
             }
         },
         .mouse_press => |click| {

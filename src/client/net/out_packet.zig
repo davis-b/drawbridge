@@ -1,29 +1,6 @@
 const User = @import("../users.zig").User;
 
-pub const InKind = packed enum(u8) {
-    /// A regular paint action. e.g. draw, change color.
-    action,
-
-    /// A peer has entered the room we are in.
-    peer_entry,
-
-    /// A peer has left the room we are in.
-    peer_exit,
-
-    /// A request for our world state.
-    state_query,
-
-    /// A world state for us to use as our own.
-    state_set,
-};
-
-pub const InPacket = struct {
-    kind: InKind,
-    user: u8,
-    data: []const u8,
-};
-
-pub const OutKind = packed enum(u8) {
+pub const ClientOutKind = packed enum(u8) {
     /// A regular paint action.
     action,
 
@@ -31,7 +8,7 @@ pub const OutKind = packed enum(u8) {
     state,
 };
 
-pub const OutPacket = struct {
+pub const ClientOutPacket = struct {
     kind: OutKind,
     data: []const u8,
 };
