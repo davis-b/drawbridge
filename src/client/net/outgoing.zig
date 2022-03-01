@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const ThreadContext = @import("index.zig").ThreadContext;
-const DrawAction = @import("../net_actions.zig").Action;
+const DrawAction = @import("actions.zig").Action;
 const packet = @import("packet.zig");
 
 /// Something delivered from the main thread that is to be sent to the server.

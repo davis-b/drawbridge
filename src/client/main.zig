@@ -3,18 +3,18 @@ const warn = std.debug.warn;
 
 const parser = @import("parser");
 
+const c = @import("c.zig");
+const sdl = @import("sdl/index.zig");
+
+const net = @import("net/index.zig");
 const misc = @import("misc.zig");
 const draw = @import("draw.zig");
-const net = @import("net/index.zig");
 const gui = @import("gui.zig");
 const state = @import("state.zig");
 const tools = @import("tools.zig");
 const users = @import("users.zig");
 const NetAction = @import("net_actions.zig").Action;
 const Whiteboard = @import("whiteboard.zig").Whiteboard;
-
-const c = @import("c.zig");
-const sdl = @import("sdl/index.zig");
 
 const changeColors = c.changeColors;
 const inverseColors = c.inverseColors;

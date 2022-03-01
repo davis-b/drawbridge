@@ -2,8 +2,8 @@
 // The original SDL events are discarded and these are processed instead.
 // Remote actions and local actions of this type should be processed in the same fashion.
 
-const Dot = @import("misc.zig").Dot;
-const Tool = @import("tools.zig").Tool;
+const Dot = @import("../misc.zig").Dot;
+const Tool = @import("../tools.zig").Tool;
 
 pub const Action = union(enum) {
     tool_change: Tool,

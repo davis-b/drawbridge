@@ -5,8 +5,8 @@ const Builder = @import("std").build.Builder;
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     const executables = .{
-        // .{ "drawbridge", "src/client/main.zig" },
-        .{ "drawbridge-server", "src/server/main.zig" },
+        .{ "drawbridge", "src/client/main.zig" },
+        // .{ "drawbridge-server", "src/server/main.zig" },
     };
 
     inline for (executables) |i| {
