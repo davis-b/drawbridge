@@ -32,7 +32,9 @@ pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16, room: []co
     const addr = try std.net.Address.resolveIp(ip, port);
     var client = try connect(allocator, addr);
     errdefer client.deinit();
-    try enter_room(allocator, &client, room);
+    while (try enter_room(allocator, &client, room)) {
+        std.time.sleep(1 * std.time.ns_per_s);
+    }
     return client;
 }
 
@@ -55,7 +57,9 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
     return client;
 }
 
-pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !void {
+/// Returns true if we should try again in a little while.
+/// Otherwise returns false.
+pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !bool {
     log.debug("sending room {s}", .{room});
     var room_packet = try net.FromClient.pack(allocator, .room_request, room);
     defer allocator.free(room_packet);
@@ -86,10 +90,11 @@ pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: 
             log.debug("room joined; state incoming", .{});
         },
         .try_again => {
-            return error.TryAgain;
+            return true;
         },
         else => {
             return error.UnknownResponse;
         },
     }
+    return false;
 }
