@@ -17,5 +17,5 @@ pub const Action = union(enum) {
     layer_switch: u8,
 };
 
-const Click = struct { button: u8, pos: Dot };
-const Move = struct { pos: Dot, delta: Dot };
+const Click = packed struct { button: u8, pos: Dot };
+const Move = packed struct { pos: Dot, delta: Dot };
