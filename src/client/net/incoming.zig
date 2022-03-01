@@ -67,18 +67,6 @@ pub fn startReceiving(context: ThreadContext) void {
             },
             // Set the state of this client.
             .state_set => {
-                // New user enters, server sends that info to connected clients.
-                //
-                // Server copies packets that arrive after this point into a packet history. Server still sends packets to previously connected clients in the meantime.
-                //
-                // When the Authoritative Client sends a (valid) world state, server can mark that packet.
-                //
-                // Send the packet history to the new client.
-                // Any packets that the AC sent before the world state packet can be skipped or removed when sending packet history to new client.
-                //
-                // When history has been sent, free it and treat the new client as any other would be treated.
-                //
-
                 const world = std.mem.bytesToValue(packet.WorldState, @ptrCast(*const [@sizeOf(packet.WorldState)]u8, message.data));
                 pipe.meta.put(MetaEvent{ .state_set = world }) catch {
                     std.debug.print("Network read thread encountered a queue error while adding to meta queue [state set].\n", .{});
