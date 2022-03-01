@@ -55,6 +55,7 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
 }
 
 pub fn enterRoom(client: *mot.Connection, room: []const u8) !void {
+    @compileError("TODO: revamp this using new packet semantics");
     log.debug("sending room {s}", .{room});
     try client.send(room);
     log.debug("sent room", .{});

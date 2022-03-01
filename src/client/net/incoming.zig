@@ -31,6 +31,8 @@ pub fn startReceiving(context: ThreadContext) void {
         // Our queue implementation copies the item we give it.
         // Thus, we do not have to worry about freeing the underlying memory before the queue consumer uses it.
         defer alloc.free(dataPacket);
+
+        @compileLog("TODO: Deserialize this according to new packet semantics");
         const message = std.mem.bytesToValue(packet.InPacket, dataPacket[0..@sizeOf(packet.InPacket)]);
         switch (message.kind) {
             .action => {
