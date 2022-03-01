@@ -1,18 +1,5 @@
 const User = @import("../users.zig").User;
 
-pub const ClientOutKind = packed enum(u8) {
-    /// A regular paint action.
-    action,
-
-    /// Our world state, as requested.
-    state,
-};
-
-pub const ClientOutPacket = struct {
-    kind: OutKind,
-    data: []const u8,
-};
-
 /// A user with its ID, for use in conjunction with sending WorldState.
 pub const UniqueUser = struct {
     id: u8,
