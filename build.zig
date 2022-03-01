@@ -13,10 +13,16 @@ pub fn build(b: *Builder) void {
         const exe = b.addExecutable(i[0], i[1]);
         exe.setBuildMode(mode);
 
+        // Shared network code
         exe.addPackagePath("net", "src/net/index.zig");
+        // Message Oriented Tcp
         exe.addPackagePath("mot", "../mot/src/extras.zig"); // TODO put MOT on github and use it as a submodule within this dir
+        // Threadsafe queue
         exe.addPackagePath("queue", "../common/queue.zig"); // TODO put this on github and use it as a submodule within this dir
+        // Command line parser
         exe.addPackagePath("parser", "../common/parser.zig"); // TODO put this on github and use it as a submodule within this dir
+        // Packet serializer
+        exe.addPackagePath("cereal", "../common/cereal.zig"); // TODO put this on github and use it as a submodule within this dir
 
         // Client only
         if (i[0].len == "drawbridge".len) {
