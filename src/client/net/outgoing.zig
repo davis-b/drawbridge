@@ -2,13 +2,14 @@ const std = @import("std");
 
 const ThreadContext = @import("index.zig").ThreadContext;
 const DrawAction = @import("actions.zig").Action;
-const Packet = @import("net").Packet(.client);
-const User = @import("../users.zig").User;
+const packet = @import("packet.zig");
+
+const Packet = packet.Packet(.client);
 
 /// Something delivered from the main thread that is to be sent to the server.
 pub const OutgoingData = union(enum) {
     action: DrawAction,
-    state: WorldState,
+    state: packet.WorldState,
 };
 
 pub fn startSending(context: ThreadContext) void {
@@ -19,10 +20,10 @@ pub fn startSending(context: ThreadContext) void {
         // either packed extern struct or more manual serialization.
         const packedMsg = switch (msg) {
             .action => |*action| {
-                Packet{ .kind = .action, .data = std.mem.asBytes(action) };
+                Packet{ .kind = .draw_action, .data = std.mem.asBytes(action) };
             },
             .state => |*state| {
-                Packet{ .kind = .state, .data = std.mem.asBytes(state) };
+                Packet{ .kind = .return_state, .data = std.mem.asBytes(state) };
             },
         };
         context.client.send(std.mem.asBytes(&packedMsg)) catch |err| {
@@ -33,18 +34,3 @@ pub fn startSending(context: ThreadContext) void {
         };
     }
 }
-
-/// A user with its ID, for use in conjunction with sending WorldState.
-pub const UniqueUser = struct {
-    id: u8,
-    user: User,
-};
-
-/// Used to send and receive the state of the program when a user enters a room.
-pub const WorldState = struct {
-    users: []UniqueUser,
-    image: []const u8,
-    // TODO
-    // image_size: Dot,
-    // layers: u8,
-};

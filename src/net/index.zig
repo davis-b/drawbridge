@@ -6,7 +6,7 @@ pub const FromServer = @import("server_made_packet.zig");
 pub const FromClient = @import("client_made_packet.zig");
 
 /// A simple packet type, containing a kind and some data.
-fn Packet(kind: PacketOriginator) type {
+pub fn Packet(kind: PacketOriginator) type {
     return struct {
         kind: switch (kind) {
             .server => FromServer.Kind,

@@ -2,9 +2,10 @@ const std = @import("std");
 const log = std.log.default;
 
 pub const mot = @import("mot"); // message oriented tcp
+const net = @import("net");
 const Queue = @import("queue").ThreadsafeQueue;
 
-pub const packet = @import("packet.zig");
+const packet = @import("packet.zig");
 const users = @import("../users.zig");
 const MetaEvent = @import("meta_events.zig").Event;
 const c = @import("c.zig");
@@ -31,7 +32,7 @@ pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16, room: []co
     const addr = try std.net.Address.resolveIp(ip, port);
     var client = try connect(allocator, addr);
     errdefer client.deinit();
-    try enterRoom(&client, room);
+    try enter_room(allocator, &client, room);
     return client;
 }
 
@@ -54,23 +55,41 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
     return client;
 }
 
-pub fn enterRoom(client: *mot.Connection, room: []const u8) !void {
-    @compileError("TODO: revamp this using new packet semantics");
+pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !void {
     log.debug("sending room {s}", .{room});
-    try client.send(room);
+    var room_packet = try net.FromClient.pack(allocator, .room_request, room);
+    defer allocator.free(room_packet);
+    try client.send(room_packet);
     log.debug("sent room", .{});
 
-    const success = [_]u8{1};
-    var result_buffer = [_]u8{0} ** success.len;
+    var result_buffer = [_]u8{0} ** 80;
 
     log.debug("waiting for response", .{});
-    const room_result = try client.recv(result_buffer[0..]);
+    const result_packet = try client.recv(result_buffer[0..]);
     defer client.marshaller.allocator.free(room_result);
     log.debug("response received", .{});
 
-    if (!std.mem.eql(u8, room_result, success[0..])) {
-        log.debug("room not joined", .{});
-        return error.InvalidRoom;
+    const result = try net.unwrap(.server, result_packet);
+    std.debug.assert(result.kind == .response);
+    const response = try std.meta.intToEnum(net.FromServer.Response, result.data[0]);
+
+    // Could return response here and have main function handle it.
+    switch (response) {
+        .room_full => {
+            log.debug("room not joined; room full", .{});
+            return error.FullRoom;
+        },
+        .room_empty => {
+            log.debug("room joined; empty room", .{});
+        },
+        .room_state_incoming => {
+            log.debug("room joined; state incoming", .{});
+        },
+        .try_again => {
+            return error.TryAgain;
+        },
+        else => {
+            return error.UnknownResponse;
+        },
     }
-    log.debug("room joined", .{});
 }

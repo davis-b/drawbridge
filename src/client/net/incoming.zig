@@ -1,9 +1,11 @@
 const std = @import("std");
 
 const ThreadContext = @import("index.zig").ThreadContext;
-const DrawAction = @import("../net_actions.zig").Action;
+const DrawAction = @import("actions.zig").Action;
 const packet = @import("packet.zig");
 const MetaEvent = @import("meta_events.zig").Event;
+
+const Packet = packet.Packet(.server);
 
 /// An incoming Action along with the associated user that spawned it.
 /// Ready for consumption by the main thread.

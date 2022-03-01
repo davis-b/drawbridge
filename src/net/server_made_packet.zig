@@ -39,3 +39,12 @@ pub const Response = packed enum(u8) {
     /// Trying again after a brief delay may fix the issue.
     try_again,
 };
+
+/// Packs the outermost (client <- server) layer of a packet.
+/// Caller owns returned memory.
+pub fn pack(allocator: *std.mem.Allocator, kind: Kind, packet: []const u8) ![]u8 {
+    var new = try allocator.alloc(u8, packet.len + 1);
+    std.mem.copy(u8, new[1..], packet);
+    new[0] = @enumToInt(kind);
+    return new;
+}
