@@ -2,10 +2,10 @@ const std = @import("std");
 const log = std.log.default;
 
 pub const mot = @import("mot"); // message oriented tcp
-const net = @import("net");
+const net = @import("net"); // network code/data shared with server
 const Queue = @import("queue").ThreadsafeQueue;
 
-const packet = @import("packet.zig");
+pub const packet = @import("packet.zig");
 const users = @import("../users.zig");
 const MetaEvent = @import("meta_events.zig").Event;
 const c = @import("c.zig");
@@ -70,7 +70,7 @@ pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: 
 
     log.debug("waiting for response", .{});
     const result_packet = try client.recv(result_buffer[0..]);
-    defer client.marshaller.allocator.free(room_result);
+    defer client.marshaller.allocator.free(result_packet);
     log.debug("response received", .{});
 
     const result = try net.unwrap(.server, result_packet);
@@ -91,9 +91,6 @@ pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: 
         },
         .try_again => {
             return true;
-        },
-        else => {
-            return error.UnknownResponse;
         },
     }
     return false;

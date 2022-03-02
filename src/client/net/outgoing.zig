@@ -16,8 +16,6 @@ pub fn startSending(context: ThreadContext) void {
     while (true) {
         const msg = context.pipe.out.wait(null) catch unreachable;
         @compileError("TODO: Serialize this properly");
-        // TODO we probably have to serialize packet.WorldState and maybe DrawAction to a sequence of bytes that will be the same on every computer.
-        // either packed extern struct or more manual serialization.
         const packedMsg = switch (msg) {
             .action => |*action| {
                 Packet{ .kind = .draw_action, .data = std.mem.asBytes(action) };

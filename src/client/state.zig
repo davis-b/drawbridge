@@ -13,3 +13,7 @@ pub const World = struct {
     image: *Whiteboard,
     peers: *Peers,
 };
+
+pub fn pack(allocator: *std.mem.Allocator, world: *World) []const u8 {
+    //
+}

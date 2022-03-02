@@ -10,8 +10,8 @@ const Packet = packet.Packet(.server);
 /// An incoming Action along with the associated user that spawned it.
 /// Ready for consumption by the main thread.
 pub const PackagedAction = struct {
-    action: DrawAction,
     userID: u8,
+    action: DrawAction,
 };
 
 /// This thread is responsible for processing incoming packets.
@@ -26,7 +26,6 @@ pub fn startReceiving(context: ThreadContext) void {
         const dataPacket = context.client.recv(recv_buffer[0..]) catch {
             pipe.meta.put(.net_exit) catch {
                 std.debug.print("Network read thread encountered a queue error while exiting.\n", .{});
-                break;
             };
             break;
         };

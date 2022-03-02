@@ -7,13 +7,13 @@ const c = @import("c.zig");
 const sdl = @import("sdl/index.zig");
 
 const net = @import("net/index.zig");
+const NetAction = @import("net/actions.zig").Action;
 const misc = @import("misc.zig");
 const draw = @import("draw.zig");
 const gui = @import("gui.zig");
 const state = @import("state.zig");
 const tools = @import("tools.zig");
 const users = @import("users.zig");
-const NetAction = @import("net_actions.zig").Action;
 const Whiteboard = @import("whiteboard.zig").Whiteboard;
 
 const changeColors = c.changeColors;
@@ -163,14 +163,12 @@ pub fn main() !void {
                         running = false;
                     },
                     // Our state has been queried. Add it to outgoing queue here.
-                    .state_query => {
+                    .state_query => |our_id| {
+                        @compileError("todo; double check this and potentialy refactor");
                         const imageData = world.image.serialize();
                         var userList = try allocator.alloc(net.packet.UniqueUser, world.peers.count() + 1);
                         defer allocator.free(userList);
-                        // Peer ID 0 is reserved for the local user.
-                        // No peer is assigned the ID of 0 on the server or any client.
-                        // TODO when creating unique users, the world state packet should provide us with a user ID for ourselves so the server doesn't have to fill that in for us.
-                        userList[0] = .{ .user = local_user, .id = 0 };
+                        userList[0] = .{ .user = local_user, .id = our_id };
                         var iter = world.peers.iterator();
                         var index: usize = 1;
                         while (iter.next()) |entry| {
