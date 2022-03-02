@@ -65,6 +65,10 @@ pub const Client = struct {
             self.packet_buffer = PacketStorage.init(room.allocator);
         }
     }
+
+    pub fn format(self: @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, out_stream: anytype) !void {
+        try std.fmt.format(out_stream, "'Client (fd={})'", .{self.fd});
+    }
 };
 
 /// Stores copies of packets.

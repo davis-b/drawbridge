@@ -98,6 +98,10 @@ pub const Room = struct {
         // In such a situation, all we have to do is ignore the packet.
         return null;
     }
+
+    pub fn format(self: @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, out_stream: anytype) !void {
+        try std.fmt.format(out_stream, "'Room ({s}, {})'", .{ self.name, self.clients.items.len });
+    }
 };
 
 /// Connects a client with an up to date state of the room to a list of clients requesting the room's state.
