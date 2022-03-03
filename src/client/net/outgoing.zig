@@ -14,21 +14,27 @@ pub const OutgoingData = union(enum) {
 
 pub fn startSending(context: ThreadContext) void {
     while (true) {
-        const msg = context.pipe.out.wait(null) catch unreachable;
-        @compileError("TODO: Serialize this properly");
-        const packedMsg = switch (msg) {
-            .action => |*action| {
-                Packet{ .kind = .draw_action, .data = std.mem.asBytes(action) };
-            },
-            .state => |*state| {
-                Packet{ .kind = .return_state, .data = std.mem.asBytes(state) };
-            },
-        };
-        context.client.send(std.mem.asBytes(&packedMsg)) catch |err| {
+        const event = context.pipe.out.wait(null) catch unreachable;
+        const packet = try serialize(allocator, event);
+        context.client.send(packet) catch |err| {
             pipe.meta.put(.net_exit) catch {
                 std.debug.print("Network write thread encountered a queue error while exiting.\n", .{});
             };
             break;
         };
     }
+}
+
+fn serialize(allocator: *std.mem.Allocator, data: OutgoingData) ![]u8 {
+    @compileError("TODO: Serialize this properly");
+
+    var buffer = try allocator.alloc(u8, sizeOf(data) + 1);
+    buffer[0] = switch (msg) {
+        .action => @enumToInt(net.FromClient.Kind.draw_action),
+        .state => @enumToInt(net.FromClient.Kind.return_state),
+    };
+
+    try pack_more(OutgoingData, buffer[1..], data);
+
+    return buffer;
 }
