@@ -60,11 +60,11 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
 /// Returns true if we should try again in a little while.
 /// Otherwise returns false.
 pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !bool {
-    log.debug("sending room {s}", .{room});
+    log.debug("requesting to join room: \"{s}\"", .{room});
     var room_packet = try net.FromClient.pack(allocator, .room_request, room);
     defer allocator.free(room_packet);
     try client.send(room_packet);
-    log.debug("sent room", .{});
+    log.debug("request sent", .{});
 
     var result_buffer = [_]u8{0} ** 80;
 
