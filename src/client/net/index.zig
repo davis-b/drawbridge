@@ -5,10 +5,9 @@ pub const mot = @import("mot"); // message oriented tcp
 const net = @import("net"); // network code/data shared with server
 const Queue = @import("queue").ThreadsafeQueue;
 
+const users = @import("client").users;
 pub const packet = @import("packet.zig");
-const users = @import("../users.zig");
 const MetaEvent = @import("meta_events.zig").Event;
-const c = @import("c.zig");
 const send = @import("outgoing.zig");
 const recv = @import("incoming.zig");
 
@@ -25,6 +24,7 @@ pub const Pipe = struct {
 pub const ThreadContext = struct {
     pipe: *Pipe,
     client: *mot.Connection,
+    allocator: *std.mem.Allocator,
 };
 
 /// Initializes a connection with the server at a specific room.
@@ -61,7 +61,7 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
 /// Otherwise returns false.
 pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !bool {
     log.debug("requesting to join room: \"{s}\"", .{room});
-    var room_packet = try net.FromClient.pack(allocator, .room_request, room);
+    var room_packet = try net.FromClient.wrap(allocator, .room_request, room);
     defer allocator.free(room_packet);
     try client.send(room_packet);
     log.debug("request sent", .{});
