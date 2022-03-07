@@ -152,7 +152,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
 fn request_world_state(requester: *Client) !void {
     if (requester.room) |room| {
         const person_with_state = (try room.request_world_state_source(requester)) orelse return error.PeersUnableToSupplyState;
-        _ = person_with_state.send(protocol.pack_generic(.state_query, null)[0..], "state query");
+        _ = person_with_state.send(protocol.pack_generic(.state_query, person_with_state.id)[0..], "state query");
     } else {
         return error.NullRoom;
     }
