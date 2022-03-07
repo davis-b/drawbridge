@@ -6,7 +6,7 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     const executables = .{
         .{ "drawbridge", "src/client/main.zig" },
-        // .{ "drawbridge-server", "src/server/main.zig" },
+        .{ "drawbridge-server", "src/server/main.zig" },
     };
 
     inline for (executables) |i| {
@@ -26,7 +26,7 @@ pub fn build(b: *Builder) void {
 
         // Client only
         if (i[0].len == "drawbridge".len) {
-            exe.addPackagePath("c", "src/client/c.zig");
+            exe.addPackagePath("client", "src/client/index.zig");
             const lib_cflags = [_][]const u8{"-std=c99"};
             exe.addCSourceFile("src/client/setpixel.c", lib_cflags[0..]);
             // exe.addIncludeDir("src/");
@@ -42,5 +42,28 @@ pub fn build(b: *Builder) void {
 
         b.default_step.dependOn(&exe.step);
         b.installArtifact(exe);
+    }
+
+    const test_step = b.step("test", "Test the app");
+    inline for ([_][]const u8{
+        "src/client/net/outgoing.zig",
+    }) |testPath| {
+        const test1 = b.addTest(testPath);
+        test1.linkSystemLibrary("c");
+        test1.addIncludeDir("/usr/include/SDL2/");
+
+        test1.addPackagePath("client", "src/client/index.zig");
+        // Shared network code
+        test1.addPackagePath("net", "src/net/index.zig");
+        // Message Oriented Tcp
+        test1.addPackagePath("mot", "../mot/src/extras.zig"); // TODO put MOT on github and use it as a submodule within this dir
+        // Threadsafe queue
+        test1.addPackagePath("queue", "../common/queue.zig"); // TODO put this on github and use it as a submodule within this dir
+        // Command line parser
+        test1.addPackagePath("parser", "../common/parser.zig"); // TODO put this on github and use it as a submodule within this dir
+        // Packet serializer
+        test1.addPackagePath("cereal", "../common/cereal.zig"); // TODO put this on github and use it as a submodule within this dir
+
+        test_step.dependOn(&test1.step);
     }
 }

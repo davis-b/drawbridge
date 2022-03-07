@@ -1,10 +1,11 @@
 const std = @import("std");
 
+const net = @import("net");
+const cereal = @import("cereal");
+
 const ThreadContext = @import("index.zig").ThreadContext;
 const DrawAction = @import("actions.zig").Action;
 const packet = @import("packet.zig");
-
-const Packet = packet.Packet(.client);
 
 /// Something delivered from the main thread that is to be sent to the server.
 pub const OutgoingData = union(enum) {
@@ -16,6 +17,7 @@ pub fn startSending(context: ThreadContext) void {
     while (true) {
         const event = context.pipe.out.wait(null) catch unreachable;
         const packet = try serialize(allocator, event);
+        defer allocator.free(packet);
         context.client.send(packet) catch |err| {
             pipe.meta.put(.net_exit) catch {
                 std.debug.print("Network write thread encountered a queue error while exiting.\n", .{});
@@ -25,16 +27,81 @@ pub fn startSending(context: ThreadContext) void {
     }
 }
 
-fn serialize(allocator: *std.mem.Allocator, data: OutgoingData) ![]u8 {
-    @compileError("TODO: Serialize this properly");
+fn serialize(allocator: *std.mem.Allocator, event: OutgoingData) ![]u8 {
+    // @compileError("TODO: Serialize this properly");
 
-    var buffer = try allocator.alloc(u8, sizeOf(data) + 1);
-    buffer[0] = switch (msg) {
-        .action => @enumToInt(net.FromClient.Kind.draw_action),
-        .state => @enumToInt(net.FromClient.Kind.return_state),
-    };
-
-    try pack_more(OutgoingData, buffer[1..], data);
+    var buffer: []u8 = undefined;
+    switch (event) {
+        .action => |data| {
+            buffer = try allocator.alloc(u8, cereal.size_of(data) + 1);
+            // Dedicate the 0th index in the packet to indicating this packet type to the server.
+            buffer[0] = @enumToInt(net.FromClient.Kind.draw_action);
+            cereal.pack_dynamic(DrawAction, buffer[1..], data);
+        },
+        .state => |data| {
+            buffer = try allocator.alloc(u8, cereal.size_of(data) + 1);
+            // Dedicate the 0th index in the packet to indicating this packet type to the server.
+            buffer[0] = @enumToInt(net.FromClient.Kind.return_state);
+            cereal.pack_dynamic(packet.WorldState, buffer[1..], data);
+        },
+    }
 
     return buffer;
+}
+
+test "serialize and deserialize draw action" {
+    const alloc = std.testing.allocator;
+
+    const actions = [_]DrawAction{
+        .{ .layer_switch = 3 },
+        .{ .mouse_press = .{ .button = 8, .pos = .{ .x = 900, .y = -500 } } },
+    };
+
+    for (actions) |action| {
+        const event = OutgoingData{ .action = action };
+        const packet_bytes = try serialize(alloc, event);
+        defer alloc.free(packet_bytes);
+
+        try std.testing.expectEqual(packet_bytes.len, cereal.size_of(action) + 1);
+        try std.testing.expect(@intToEnum(net.FromClient.Kind, packet_bytes[0]) == .draw_action);
+
+        // Keep in mind, when a DrawAction packet is returned from the server, that packet will actually be struct{id: u8, action: DrawAction}.
+        var unpacked = try cereal.unpack_dynamic(null, DrawAction, packet_bytes[1..]);
+        try std.testing.expect(std.meta.eql(action, unpacked));
+        unpacked = .{ .layer_switch = 10 };
+        try std.testing.expect(!std.meta.eql(action, unpacked));
+    }
+}
+
+test "serialize and deserialize world state" {
+    const alloc = std.testing.allocator;
+    const image = [_]u8{ 1, 2, 3, 4, 5 } ** 1000;
+    var users = [_]packet.UniqueUser{
+        .{ .id = 1, .user = .{ .size = 2 } },
+        .{ .id = 25, .user = .{ .size = 26 } },
+        .{ .id = 100, .user = .{ .size = 70 } },
+        .{ .id = 200, .user = .{ .size = 255 } },
+        .{ .id = 201, .user = .{ .size = 0 } },
+    };
+
+    const state = packet.WorldState{
+        .users = users[0..],
+        .image = image[0..],
+    };
+    const event = OutgoingData{ .state = state };
+
+    const packet_bytes = try serialize(alloc, event);
+    defer alloc.free(packet_bytes);
+
+    try std.testing.expectEqual(packet_bytes.len, cereal.size_of(state) + 1);
+    try std.testing.expect(@intToEnum(net.FromClient.Kind, packet_bytes[0]) == .return_state);
+
+    var unpacked = try cereal.unpack_dynamic(alloc, packet.WorldState, packet_bytes[1..]);
+    defer alloc.free(unpacked.users);
+    defer alloc.free(unpacked.image);
+    try std.testing.expect(std.mem.eql(u8, state.image, unpacked.image));
+    for (state.users) |user, n| {
+        try std.testing.expect(std.meta.eql(user.id, unpacked.users[n].id));
+        try std.testing.expect(std.meta.eql(user.user, unpacked.users[n].user));
+    }
 }

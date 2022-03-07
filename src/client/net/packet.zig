@@ -1,4 +1,4 @@
-const User = @import("../users.zig").User;
+const User = @import("client").users.User;
 
 /// A user with its ID, for use in conjunction with sending WorldState.
 pub const UniqueUser = struct {
