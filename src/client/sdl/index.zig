@@ -1,4 +1,4 @@
-const c = @import("c");
+const c = @import("client").c;
 pub const display = @import("display.zig");
 pub const mouse = @import("mouse.zig");
 pub const keyboard = @import("keyboard.zig");

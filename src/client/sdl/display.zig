@@ -1,5 +1,5 @@
 const misc = @import("misc.zig");
-const c = @import("c");
+const c = @import("client").c;
 
 // For some reason, this isn't parsed automatically. According to SDL docs, the
 // surface pointer returned is optional!
