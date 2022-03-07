@@ -28,8 +28,6 @@ pub fn startSending(context: ThreadContext) void {
 }
 
 fn serialize(allocator: *std.mem.Allocator, event: OutgoingData) ![]u8 {
-    // @compileError("TODO: Serialize this properly");
-
     var buffer: []u8 = undefined;
     switch (event) {
         .action => |data| {
@@ -45,7 +43,6 @@ fn serialize(allocator: *std.mem.Allocator, event: OutgoingData) ![]u8 {
             cereal.pack_dynamic(packet.WorldState, buffer[1..], data);
         },
     }
-
     return buffer;
 }
 
