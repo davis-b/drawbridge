@@ -34,13 +34,13 @@ fn serialize(allocator: *std.mem.Allocator, event: OutgoingData) ![]u8 {
             buffer = try allocator.alloc(u8, cereal.size_of(data) + 1);
             // Dedicate the 0th index in the packet to indicating this packet type to the server.
             buffer[0] = @enumToInt(net.FromClient.Kind.draw_action);
-            cereal.pack_dynamic(DrawAction, buffer[1..], data);
+            cereal.serialize(DrawAction, buffer[1..], data);
         },
         .state => |data| {
             buffer = try allocator.alloc(u8, cereal.size_of(data) + 1);
             // Dedicate the 0th index in the packet to indicating this packet type to the server.
             buffer[0] = @enumToInt(net.FromClient.Kind.return_state);
-            cereal.pack_dynamic(packet.WorldState, buffer[1..], data);
+            cereal.serialize(packet.WorldState, buffer[1..], data);
         },
     }
     return buffer;
@@ -63,7 +63,7 @@ test "serialize and deserialize draw action" {
         try std.testing.expect(@intToEnum(net.FromClient.Kind, packet_bytes[0]) == .draw_action);
 
         // Keep in mind, when a DrawAction packet is returned from the server, that packet will actually be struct{id: u8, action: DrawAction}.
-        var unpacked = try cereal.unpack_dynamic(null, DrawAction, packet_bytes[1..]);
+        var unpacked = try cereal.deserialize(null, DrawAction, packet_bytes[1..]);
         try std.testing.expect(std.meta.eql(action, unpacked));
         unpacked = .{ .layer_switch = 10 };
         try std.testing.expect(!std.meta.eql(action, unpacked));
@@ -93,7 +93,7 @@ test "serialize and deserialize world state" {
     try std.testing.expectEqual(packet_bytes.len, cereal.size_of(state) + 1);
     try std.testing.expect(@intToEnum(net.FromClient.Kind, packet_bytes[0]) == .return_state);
 
-    var unpacked = try cereal.unpack_dynamic(alloc, packet.WorldState, packet_bytes[1..]);
+    var unpacked = try cereal.deserialize(alloc, packet.WorldState, packet_bytes[1..]);
     defer alloc.free(unpacked.users);
     defer alloc.free(unpacked.image);
     try std.testing.expect(std.mem.eql(u8, state.image, unpacked.image));
