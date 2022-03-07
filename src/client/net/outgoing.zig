@@ -16,10 +16,15 @@ pub const OutgoingData = union(enum) {
 pub fn startSending(context: ThreadContext) void {
     while (true) {
         const event = context.pipe.out.wait(null) catch unreachable;
-        const packet = try serialize(allocator, event);
-        defer allocator.free(packet);
-        context.client.send(packet) catch |err| {
-            pipe.meta.put(.net_exit) catch {
+        const packetBytes = serialize(context.allocator, event) catch {
+            context.pipe.meta.put(.net_exit) catch {
+                std.debug.print("Network write thread encountered a queue error while exiting due to memory allocation error.\n", .{});
+            };
+            break;
+        };
+        defer context.allocator.free(packetBytes);
+        context.client.send(packetBytes) catch |err| {
+            context.pipe.meta.put(.net_exit) catch {
                 std.debug.print("Network write thread encountered a queue error while exiting.\n", .{});
             };
             break;
@@ -56,14 +61,14 @@ test "serialize and deserialize draw action" {
 
     for (actions) |action| {
         const event = OutgoingData{ .action = action };
-        const packet_bytes = try serialize(alloc, event);
-        defer alloc.free(packet_bytes);
+        const packetBytes = try serialize(alloc, event);
+        defer alloc.free(packetBytes);
 
-        try std.testing.expectEqual(packet_bytes.len, cereal.size_of(action) + 1);
-        try std.testing.expect(@intToEnum(net.FromClient.Kind, packet_bytes[0]) == .draw_action);
+        try std.testing.expectEqual(packetBytes.len, cereal.size_of(action) + 1);
+        try std.testing.expect(@intToEnum(net.FromClient.Kind, packetBytes[0]) == .draw_action);
 
         // Keep in mind, when a DrawAction packet is returned from the server, that packet will actually be struct{id: u8, action: DrawAction}.
-        var unpacked = try cereal.deserialize(null, DrawAction, packet_bytes[1..]);
+        var unpacked = try cereal.deserialize(null, DrawAction, packetBytes[1..]);
         try std.testing.expect(std.meta.eql(action, unpacked));
         unpacked = .{ .layer_switch = 10 };
         try std.testing.expect(!std.meta.eql(action, unpacked));
@@ -87,13 +92,13 @@ test "serialize and deserialize world state" {
     };
     const event = OutgoingData{ .state = state };
 
-    const packet_bytes = try serialize(alloc, event);
-    defer alloc.free(packet_bytes);
+    const packetBytes = try serialize(alloc, event);
+    defer alloc.free(packetBytes);
 
-    try std.testing.expectEqual(packet_bytes.len, cereal.size_of(state) + 1);
-    try std.testing.expect(@intToEnum(net.FromClient.Kind, packet_bytes[0]) == .return_state);
+    try std.testing.expectEqual(packetBytes.len, cereal.size_of(state) + 1);
+    try std.testing.expect(@intToEnum(net.FromClient.Kind, packetBytes[0]) == .return_state);
 
-    var unpacked = try cereal.deserialize(alloc, packet.WorldState, packet_bytes[1..]);
+    var unpacked = try cereal.deserialize(alloc, packet.WorldState, packetBytes[1..]);
     defer alloc.free(unpacked.users);
     defer alloc.free(unpacked.image);
     try std.testing.expect(std.mem.eql(u8, state.image, unpacked.image));
