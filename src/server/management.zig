@@ -91,6 +91,7 @@ pub const Room = struct {
     /// Can return null if the recipient has left the room. Caller should do nothing in that case.
     pub fn find_world_state_recipient(self: *Room, sender: *Client) ?*Client {
         const id = self.state_share_map.take_linked(sender.id) orelse return null;
+        // Ensure the given recipient id is still in this room.
         for (self.clients.items) |c| {
             if (c.id == id) return c;
         }
@@ -155,8 +156,9 @@ const ClientStateLinker = struct {
     /// Can return null if recipient has left room.
     /// Removes the 0th item from the list of the sender's recipients.
     fn take_linked(self: *Self, sender: ClientIdT) ?ClientIdT {
-        if (self.links.get(sender)) |*recipients| {
-            return recipients.orderedRemove(0);
+        if (self.links.getPtr(sender)) |recipients| {
+            const recipient = recipients.orderedRemove(0);
+            return recipient;
         }
         return null;
     }
