@@ -117,12 +117,12 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
         return; // If requested room is full, we will not change any state.
     }
     if (requester.room) |r| management.remove_from_room(requester);
-    requester.init_packet_buffer();
     try rooms.add_client(requester, room_name);
 
     if (requester.room.?.count() == 1) {
         _ = requester.send(protocol.pack_response(.room_empty)[0..], "response: empty room");
     } else {
+        requester.init_packet_buffer();
         try notify_connect(requester);
         request_world_state(requester) catch |err| {
             switch (err) {
