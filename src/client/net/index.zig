@@ -6,7 +6,7 @@ const net = @import("net"); // network code/data shared with server
 const Queue = @import("queue").ThreadsafeQueue;
 
 const users = @import("client").users;
-pub const packet = @import("packet.zig");
+pub const WorldState = @import("world_state.zig").WorldState;
 const MetaEvent = @import("meta_events.zig").Event;
 const send = @import("outgoing.zig");
 const recv = @import("incoming.zig");

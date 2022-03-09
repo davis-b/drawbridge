@@ -5,12 +5,12 @@ const cereal = @import("cereal");
 
 const ThreadContext = @import("index.zig").ThreadContext;
 const DrawAction = @import("actions.zig").Action;
-const packet = @import("packet.zig");
+const WorldState = @import("world_state.zig").WorldState;
 
 /// Something delivered from the main thread that is to be sent to the server.
 pub const OutgoingData = union(enum) {
     action: DrawAction,
-    state: packet.WorldState,
+    state: WorldState,
 };
 
 pub fn startSending(context: ThreadContext) void {
@@ -47,7 +47,7 @@ fn serialize(allocator: *std.mem.Allocator, event: OutgoingData) ![]u8 {
             buffer = try allocator.alloc(u8, cereal.size_of(data) + 1);
             // Dedicate the 0th index in the packet to indicating this packet type to the server.
             buffer[0] = @enumToInt(net.FromClient.Kind.return_state);
-            cereal.serialize(packet.WorldState, buffer[1..], data);
+            cereal.serialize(WorldState, buffer[1..], data);
         },
     }
     return buffer;
@@ -80,7 +80,7 @@ test "serialize and deserialize draw action" {
 test "serialize and deserialize world state" {
     const alloc = std.testing.allocator;
     const image = [_]u8{ 1, 2, 3, 4, 5 } ** 1000;
-    var users = [_]packet.UniqueUser{
+    var users = [_]WorldState.UniqueUser{
         .{ .id = 1, .user = .{ .size = 2 } },
         .{ .id = 25, .user = .{ .size = 26 } },
         .{ .id = 100, .user = .{ .size = 70 } },
@@ -88,7 +88,7 @@ test "serialize and deserialize world state" {
         .{ .id = 201, .user = .{ .size = 0 } },
     };
 
-    const state = packet.WorldState{
+    const state = WorldState{
         .users = users[0..],
         .image = image[0..],
     };
@@ -100,7 +100,7 @@ test "serialize and deserialize world state" {
     try std.testing.expectEqual(packetBytes.len, cereal.size_of(state) + 1);
     try std.testing.expect(@intToEnum(net.FromClient.Kind, packetBytes[0]) == .return_state);
 
-    var unpacked = try cereal.deserialize(alloc, packet.WorldState, packetBytes[1..]);
+    var unpacked = try cereal.deserialize(alloc, WorldState, packetBytes[1..]);
     defer alloc.free(unpacked.users);
     defer alloc.free(unpacked.image);
     try std.testing.expect(std.mem.eql(u8, state.image, unpacked.image));

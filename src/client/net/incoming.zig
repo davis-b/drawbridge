@@ -5,7 +5,7 @@ const cereal = @import("cereal");
 
 const ThreadContext = @import("index.zig").ThreadContext;
 const DrawAction = @import("actions.zig").Action;
-const packet = @import("packet.zig");
+const WorldState = @import("world_state.zig").WorldState;
 const MetaEvent = @import("meta_events.zig").Event;
 
 /// An incoming Action along with the associated user that spawned it.
@@ -70,7 +70,7 @@ fn handleMsg(context: ThreadContext, message: net.Packet(.server)) !void {
         // Set the state of this client.
         .state_set => {
             // const world = std.mem.bytesToValue(packet.WorldState, @ptrCast(*const [@sizeOf(packet.WorldState)]u8, message.data));
-            const world = try cereal.deserialize(context.allocator, packet.WorldState, message.data);
+            const world = try cereal.deserialize(context.allocator, WorldState, message.data);
             try pipe.meta.put(MetaEvent{ .state_set = world });
         },
         .response => {
