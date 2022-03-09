@@ -85,7 +85,7 @@ pub fn main() !void {
         };
         // This will spawn a new thread which will take care of low level networking stuff.
         // If the networking thread finishes early, it will put a signal in the meta queue and wait for the queue to be emptied.
-        netThreads = try net.startThreads(&netPipe, &netConnection);
+        netThreads = try net.startThreads(allocator, &netPipe, &netConnection);
     } else {
         localOnly = true;
     }
