@@ -16,7 +16,8 @@ pub const OutgoingData = union(enum) {
 pub fn startSending(context: ThreadContext) void {
     while (true) {
         const event = context.pipe.out.wait(null) catch unreachable;
-        const packetBytes = serialize(context.allocator, event) catch {
+        const packetBytes = serialize(context.allocator, event) catch |err| {
+            std.debug.print("error while serializing outgoing packet: {}\n", .{err});
             context.pipe.meta.put(.net_exit) catch {
                 std.debug.print("Network write thread encountered a queue error while exiting due to memory allocation error.\n", .{});
             };
@@ -24,6 +25,7 @@ pub fn startSending(context: ThreadContext) void {
         };
         defer context.allocator.free(packetBytes);
         context.client.send(packetBytes) catch |err| {
+            std.debug.print("error while sending packet: {}\n", .{err});
             context.pipe.meta.put(.net_exit) catch {
                 std.debug.print("Network write thread encountered a queue error while exiting.\n", .{});
             };

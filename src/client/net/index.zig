@@ -39,10 +39,10 @@ pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16, room: []co
 }
 
 /// Starts the network read/write threads.
-pub fn startThreads(pipe: *Pipe, client: *mot.Connection) ![2]*std.Thread {
-    const read_thread = try std.Thread.spawn(send.startSending, .{ .pipe = pipe, .client = client });
-    const write_thread = try std.Thread.spawn(recv.startReceiving, .{ .pipe = pipe, .client = client });
-    return [2]*std.Thread{ read_thread, write_thread };
+pub fn startThreads(allocator: *std.mem.Allocator, pipe: *Pipe, client: *mot.Connection) ![2]*std.Thread {
+    const out_thread = try std.Thread.spawn(send.startSending, .{ .pipe = pipe, .client = client, .allocator = allocator });
+    const in_thread = try std.Thread.spawn(recv.startReceiving, .{ .pipe = pipe, .client = client, .allocator = allocator });
+    return [2]*std.Thread{ out_thread, in_thread };
 }
 
 pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connection {

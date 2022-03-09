@@ -1,3 +1,4 @@
+const std = @import("std");
 const User = @import("client").users.User;
 
 /// A user with its ID, for use in conjunction with sending WorldState.
@@ -13,4 +14,8 @@ pub const WorldState = struct {
     // TODO
     // image_size: Dot,
     // layers: u8,
+
+    pub fn format(self: @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, out_stream: anytype) !void {
+        try std.fmt.format(out_stream, "World state = Users: {}", .{self.users.len});
+    }
 };
