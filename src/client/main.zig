@@ -154,7 +154,7 @@ pub fn main() !void {
                     .peer_exit => |userID| {
                         _ = world.peers.remove(userID);
                     },
-                    // Disconnected from network.
+                    // Disconnected from server.
                     .net_exit => {
                         // Can quit program, ask for new room, or enter local mode. Maybe local mode can also try reconnecting at will?
                         // For now, we will simply exit the program.
