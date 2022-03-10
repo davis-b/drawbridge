@@ -18,6 +18,8 @@ const Options = struct {
     // ip: []const u8 = "0.0.0.0",
 };
 
+// TODO should we disable forwarding packets from clients that have a packet buffer active?
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -60,6 +62,7 @@ pub fn main() !void {
             // Register new client
             try clients.put(new.fd, new);
             try poller.add(new.fd);
+            log.info("New client: {}", .{new});
             // Does not send a notify_connect signal or ask for a world state update, because it is not yet in a room.
         } else {
             const sender: *Client = clients.getPtr(readable_fd).?;
