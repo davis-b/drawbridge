@@ -27,6 +27,10 @@ const Options = struct {
     room: []const u8 = "default",
 };
 
+// TODO
+// Do not forward packets if we are in a state of 'receiving world state'
+//
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
