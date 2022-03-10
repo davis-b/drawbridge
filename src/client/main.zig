@@ -58,7 +58,7 @@ pub fn main() !void {
     var bgColor: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
 
     var running = true;
-    var local_user = users.User{ .color = 0x777777 };
+    var local_user = users.User{};
     var peers = users.Peers.init(allocator);
     var world = state.World{
         .window = window,
