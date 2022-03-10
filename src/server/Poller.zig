@@ -30,7 +30,7 @@ pub fn readable(self: *Poller) !std.os.fd_t {
         self.index = 0;
         self.open_fds = try std.os.poll(self.pfds.items[0..], -1);
 
-        log.info("open fds: {}\n", .{self.open_fds});
+        // log.info("open fds: {}\n", .{self.open_fds});
         if (self.open_fds == 0) {
             @panic("poll timeout");
         }
