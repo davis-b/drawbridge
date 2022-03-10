@@ -2,6 +2,7 @@ const std = @import("std");
 const log = std.log.default;
 
 pub const mot = @import("mot"); // message oriented tcp
+pub const cereal = @import("cereal");
 const net = @import("net"); // network code/data shared with server
 const Queue = @import("queue").ThreadsafeQueue;
 
