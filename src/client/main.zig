@@ -91,12 +91,13 @@ pub fn main() !void {
     }
     defer {
         if (!localOnly) {
+            netPipe.out.put(null) catch unreachable;
             // Cleanup network threads.
             // TODO
             // Signal threads to exit
             // Wait for threads to exit
             for (netThreads) |thread| {
-                thread.wait();
+                // thread.wait();
             }
             netConnection.deinit();
         }
@@ -104,7 +105,7 @@ pub fn main() !void {
 
     var event: c.SDL_Event = undefined;
     // Main loop
-    // TODO signal to net threads that it is time to exit. Possibly a flag from std/thread/*.zig
+    // TODO signal to recv-net thread that it is time to exit. Possibly a flag from std/thread/*.zig
     // Then wait for threads to properly exit.
     std.debug.print("running in local mode? {}\n", .{localOnly});
     if (localOnly) {
@@ -128,7 +129,7 @@ pub fn main() !void {
                 const maybe_action = onEvent(event, &world, &local_user, &running);
                 if (maybe_action) |action| {
                     if (world.peers.count() > 0) {
-                        netPipe.out.put(.{ .action = action }) catch {
+                        netPipe.out.put(net.send.ToForward{ .action = action }) catch {
                             std.debug.print("Outgoing network pipe is full. Action ignored!\n", .{});
                             continue;
                         };
@@ -165,7 +166,7 @@ pub fn main() !void {
                     // Our state has been queried. Add it to outgoing queue here.
                     .state_query => |our_id| {
                         // We must copy the state here in this thread before any state changes.
-                        try netPipe.out.put(.{ .state = try copyState(allocator, &world, local_user, our_id) });
+                        try netPipe.out.put(net.send.ToForward{ .state = try copyState(allocator, &world, local_user, our_id) });
                     },
                     // We have been supplied with a new world state to copy.
                     .state_set => |new_state| {

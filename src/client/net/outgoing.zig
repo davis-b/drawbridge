@@ -28,7 +28,7 @@ pub const Serializable = union(enum) {
 
 pub fn startSending(context: ThreadContext) void {
     while (true) {
-        const event = (context.pipe.out.wait(null) catch unreachable);
+        const event = (context.pipe.out.wait(null) catch unreachable) orelse break;
         var packetBytes: []u8 = undefined;
         switch (event) {
             .action => |action| {
