@@ -9,13 +9,13 @@ const Queue = @import("queue").ThreadsafeQueue;
 const users = @import("client").users;
 pub const WorldState = @import("world_state.zig").WorldState;
 const MetaEvent = @import("meta_events.zig").Event;
-const send = @import("outgoing.zig");
+pub const send = @import("outgoing.zig");
 const recv = @import("incoming.zig");
 
 /// Communication channel between the main thread and the network threads.
 pub const Pipe = struct {
     /// Outoing actions that we send to the server.
-    out: Queue(send.OutgoingData, 1000) = Queue(send.OutgoingData, 1000).init(),
+    out: Queue(send.ToForward, 1000) = Queue(send.ToForward, 1000).init(),
     /// Incoming actions that the server sends us, along with the associated user ID.
     in: Queue(recv.PackagedAction, 4000) = Queue(recv.PackagedAction, 4000).init(),
     /// Meta information, such as users entering or leaving a room.

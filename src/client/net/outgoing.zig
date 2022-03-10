@@ -7,22 +7,43 @@ const ThreadContext = @import("index.zig").ThreadContext;
 const DrawAction = @import("actions.zig").Action;
 const WorldState = @import("world_state.zig").WorldState;
 
-/// Something delivered from the main thread that is to be sent to the server.
-pub const OutgoingData = union(enum) {
+/// Delivered from the main thread, to be sent to the server.
+pub const ToForward = union(enum) {
     action: DrawAction,
+
+    /// The world state bytes must be created in the main thread.
+    /// They cannot be freed until after they are sent out to the server.
+    state: []u8,
+};
+
+/// Data to be serialized.
+pub const Serializable = union(enum) {
+    /// This is an unchanging struct, and can be serialized from this thread.
+    action: DrawAction,
+
+    /// This however, is created from an ever-changing world state.
+    /// Therefore it must be serialized from the main thread, to avoid desync issues.
     state: WorldState,
 };
 
 pub fn startSending(context: ThreadContext) void {
     while (true) {
-        const event = context.pipe.out.wait(null) catch unreachable;
-        const packetBytes = serialize(context.allocator, event) catch |err| {
-            std.debug.print("error while serializing outgoing packet: {}\n", .{err});
-            context.pipe.meta.put(.net_exit) catch {
-                std.debug.print("Network write thread encountered a queue error while exiting due to memory allocation error.\n", .{});
-            };
-            break;
-        };
+        const event = (context.pipe.out.wait(null) catch unreachable);
+        var packetBytes: []u8 = undefined;
+        switch (event) {
+            .action => |action| {
+                packetBytes = serialize(context.allocator, .{ .action = action }) catch |err| {
+                    std.debug.print("error while serializing outgoing packet: {}\n", .{err});
+                    context.pipe.meta.put(.net_exit) catch {
+                        std.debug.print("Network write thread encountered a queue error while exiting due to memory allocation error.\n", .{});
+                    };
+                    break;
+                };
+            },
+            .state => |world_bytes| {
+                packetBytes = world_bytes;
+            },
+        }
         defer context.allocator.free(packetBytes);
         context.client.send(packetBytes) catch |err| {
             std.debug.print("error while sending packet: {}\n", .{err});
@@ -34,7 +55,7 @@ pub fn startSending(context: ThreadContext) void {
     }
 }
 
-fn serialize(allocator: *std.mem.Allocator, event: OutgoingData) ![]u8 {
+pub fn serialize(allocator: *std.mem.Allocator, event: Serializable) ![]u8 {
     var buffer: []u8 = undefined;
     switch (event) {
         .action => |data| {
@@ -62,7 +83,7 @@ test "serialize and deserialize draw action" {
     };
 
     for (actions) |action| {
-        const event = OutgoingData{ .action = action };
+        const event = Serializable{ .action = action };
         const packetBytes = try serialize(alloc, event);
         defer alloc.free(packetBytes);
 
@@ -92,7 +113,7 @@ test "serialize and deserialize world state" {
         .users = users[0..],
         .image = image[0..],
     };
-    const event = OutgoingData{ .state = state };
+    const event = Serializable{ .state = state };
 
     const packetBytes = try serialize(alloc, event);
     defer alloc.free(packetBytes);

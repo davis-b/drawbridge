@@ -164,30 +164,17 @@ pub fn main() !void {
                     },
                     // Our state has been queried. Add it to outgoing queue here.
                     .state_query => |our_id| {
-                        @compileError("todo; double check this and potentialy refactor");
-                        const imageData = world.image.serialize();
-                        var userList = try allocator.alloc(net.packet.UniqueUser, world.peers.count() + 1);
-                        defer allocator.free(userList);
-                        userList[0] = .{ .user = local_user, .id = our_id };
-                        var iter = world.peers.iterator();
-                        var index: usize = 1;
-                        while (iter.next()) |entry| {
-                            userList[index] = .{
-                                .user = entry.value_ptr.*,
-                                .id = entry.key_ptr.*,
-                            };
-                            index += 1;
-                        }
-                        const worldState = net.packet.WorldState{ .image = imageData, .users = userList };
-                        try netPipe.out.put(.{ .state = worldState });
+                        // We must copy the state here in this thread before any state changes.
+                        try netPipe.out.put(.{ .state = try copyState(allocator, &world, local_user, our_id) });
                     },
                     // We have been supplied with a new world state to copy.
                     .state_set => |new_state| {
+                        defer allocator.free(new_state.users);
+                        defer allocator.free(new_state.image);
                         for (new_state.users) |u| {
                             try world.peers.put(u.id, u.user);
                         }
-                        // TODO this is where we might set image size, or maybe image size is set when entering a room
-                        // TODO layers as well
+                        // NOTE this is where we might set image size, or maybe image size is set when entering a room
                         world.image.deserialize(new_state.image);
                     },
                 }
@@ -195,6 +182,26 @@ pub fn main() !void {
         }
     }
     c.SDL_Log("Drawbridge raised.\n");
+}
+/// Copies and serializes this client's current transferable state into a buffer.
+/// Caller owns returned memory.
+fn copyState(allocator: *std.mem.Allocator, world: *state.World, local_user: users.User, our_id: u8) ![]u8 {
+    const imageData = world.image.serialize();
+    var userList = try allocator.alloc(net.WorldState.UniqueUser, world.peers.count() + 1);
+    defer allocator.free(userList);
+    userList[0] = .{ .user = local_user, .id = our_id };
+    var iter = world.peers.iterator();
+    var index: usize = 1;
+    while (iter.next()) |entry| {
+        userList[index] = .{
+            .user = entry.value_ptr.*,
+            .id = entry.key_ptr.*,
+        };
+        index += 1;
+    }
+    const worldState = net.WorldState{ .image = imageData, .users = userList };
+
+    return try net.send.serialize(allocator, .{ .state = worldState });
 }
 
 fn fullRender(world: *state.World) void {
