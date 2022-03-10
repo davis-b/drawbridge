@@ -93,19 +93,6 @@ pub fn main() !void {
     } else {
         localOnly = true;
     }
-    defer {
-        if (!localOnly) {
-            netPipe.out.put(null) catch unreachable;
-            // Cleanup network threads.
-            // TODO
-            // Signal threads to exit
-            // Wait for threads to exit
-            for (netThreads) |thread| {
-                // thread.wait();
-            }
-            netConnection.deinit();
-        }
-    }
 
     var event: c.SDL_Event = undefined;
     // Main loop
@@ -125,6 +112,17 @@ pub fn main() !void {
             }
         }
     } else {
+        defer {
+            netPipe.out.put(null) catch unreachable;
+            // Cleanup network threads.
+            // TODO
+            // Signal threads to exit
+            // Wait for threads to exit
+            for (netThreads) |thread| {
+                // thread.wait();
+            }
+            netConnection.deinit();
+        }
         while (running) {
             renderImage(world.surface, world.image);
             sdl.display.updateSurface(world.window);
