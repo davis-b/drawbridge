@@ -287,11 +287,6 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             var x = event.motion.x;
             var y = event.motion.y;
             const in_image = coordinatesAreInImage(world.image.render_area, x, y);
-            // TODO
-            // Does this adjust within the frame of the SDL window?
-            // What we really want are the coordinates relative to the Whiteboard image itself.
-            // So that in the SDL window maybe we have 500, 500. Yet it's at the top of the draw area. Also our image is cropped 100 off the top.
-            // In that scenario we would want to derive 100 for y, as we're at the top of the image and it's cropped by 100.
             adjustMousePos(world.image, &x, &y);
             return NetAction{ .cursor_move = .{ .pos = .{ .x = x, .y = y }, .delta = .{ .x = event.motion.xrel, .y = event.motion.yrel } } };
         },
