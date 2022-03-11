@@ -14,6 +14,8 @@ pub const ToForward = union(enum) {
     /// The world state bytes must be created in the main thread.
     /// They cannot be freed until after they are sent out to the server.
     state: []u8,
+
+    exit: void,
 };
 
 /// Data to be serialized.
@@ -28,7 +30,7 @@ pub const Serializable = union(enum) {
 
 pub fn startSending(context: ThreadContext) void {
     while (true) {
-        const event = (context.pipe.out.wait(null) catch unreachable) orelse break;
+        const event = context.pipe.out.wait(null) catch unreachable;
         var packetBytes: []u8 = undefined;
         switch (event) {
             .action => |action| {
@@ -42,6 +44,10 @@ pub fn startSending(context: ThreadContext) void {
             },
             .state => |world_bytes| {
                 packetBytes = world_bytes;
+            },
+            .exit => {
+                std.debug.print("Exiting network out thread\n", .{});
+                break;
             },
         }
         defer context.allocator.free(packetBytes);
