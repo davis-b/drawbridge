@@ -186,6 +186,7 @@ pub fn main() !void {
     }
     c.SDL_Log("Drawbridge raised.\n");
 }
+
 /// Copies and serializes this client's current transferable state into a buffer.
 /// Caller owns returned memory.
 fn copyState(allocator: *std.mem.Allocator, world: *state.World, local_user: users.User, our_id: u8) ![]u8 {
