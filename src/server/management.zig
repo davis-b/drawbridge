@@ -157,6 +157,7 @@ const ClientStateLinker = struct {
     /// Removes the 0th item from the list of the sender's recipients.
     fn take_linked(self: *Self, sender: ClientIdT) ?ClientIdT {
         if (self.links.getPtr(sender)) |recipients| {
+            if (recipients.items.len == 0) return null;
             const recipient = recipients.orderedRemove(0);
             return recipient;
         }
