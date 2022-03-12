@@ -27,10 +27,6 @@ const Options = struct {
     room: []const u8 = "default",
 };
 
-// TODO
-// Do not forward packets if we are in a state of 'receiving world state'
-//
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -82,10 +78,24 @@ pub fn main() !void {
     var netPipe = net.Pipe{};
     var netThreads: [2]*std.Thread = undefined;
     var netConnection: net.mot.Connection = undefined;
+    // Will not be true until we join a room and either it has no state or we receive state from someone in that room.
+    var fully_joined_room = false;
     if (options.ip) |ip| netSetupBlk: {
-        netConnection = net.init(allocator, ip, options.port, options.room) catch {
+        netConnection = net.init(allocator, ip, options.port) catch {
             localOnly = true;
             break :netSetupBlk;
+        };
+        errdefer netConnection.deinit();
+
+        // This can technically block indefinitely with the right circumstances. Perhaps we should give up after x seconds?
+        fully_joined_room = net.enter_room(allocator, &netConnection, options.room) catch |err| {
+            switch (err) {
+                error.FullRoom => {
+                    localOnly = true;
+                    break :netSetupBlk;
+                },
+                else => return err,
+            }
         };
         // This will spawn a new thread which will take care of low level networking stuff.
         // If the networking thread finishes early, it will put a signal in the meta queue and wait for the queue to be emptied.
@@ -122,7 +132,7 @@ pub fn main() !void {
             while (c.SDL_PollEvent(&event) == 1) {
                 const maybe_action = onEvent(event, &world, &local_user, &running);
                 if (maybe_action) |action| {
-                    if (world.peers.count() > 0) {
+                    if (world.peers.count() > 0 and fully_joined_room) {
                         netPipe.out.put(.{ .action = action }) catch {
                             std.debug.print("Outgoing network pipe is full. Action ignored!\n", .{});
                             continue;
@@ -164,6 +174,7 @@ pub fn main() !void {
                     },
                     // We have been supplied with a new world state to copy.
                     .state_set => |new_state| {
+                        fully_joined_room = true;
                         defer allocator.free(new_state.users);
                         defer allocator.free(new_state.image);
                         for (new_state.users) |u| {

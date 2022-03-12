@@ -28,14 +28,10 @@ pub const ThreadContext = struct {
     allocator: *std.mem.Allocator,
 };
 
-/// Initializes a connection with the server at a specific room.
-pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16, room: []const u8) !mot.Connection {
+/// Initializes a connection with the server.
+pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16) !mot.Connection {
     const addr = try std.net.Address.resolveIp(ip, port);
     var client = try connect(allocator, addr);
-    errdefer client.deinit();
-    while (try enter_room(allocator, &client, room)) {
-        std.time.sleep(1 * std.time.ns_per_s);
-    }
     return client;
 }
 
@@ -58,8 +54,8 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
     return client;
 }
 
-/// Returns true if we should try again in a little while.
-/// Otherwise returns false.
+/// If the server sends a try_again packet, we will block while doing so.
+/// Returns true if we are the only member of a room, otherwise false.
 pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !bool {
     log.debug("requesting to join room: \"{s}\"", .{room});
     var room_packet = try net.FromClient.wrap(allocator, .room_request, room);
@@ -86,13 +82,15 @@ pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: 
         },
         .room_empty => {
             log.debug("room joined; empty room", .{});
+            return true;
         },
         .room_state_incoming => {
             log.debug("room joined; state incoming", .{});
+            return false;
         },
         .try_again => {
-            return true;
+            std.time.sleep(1 * std.time.ns_per_s);
+            return enter_room(allocator, client, room);
         },
     }
-    return false;
 }
