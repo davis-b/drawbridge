@@ -67,8 +67,8 @@ pub fn main() !void {
         } else {
             const sender: *Client = clients.getPtr(readable_fd).?;
             // Partial messages are buffered until they are complete.
-            const packet = sender.connection.maybe_recv(recv_buffer[0..]) catch {
-                log.warn("Kicking {}. Reason: recv() call failed.\n", .{sender});
+            const packet = sender.connection.maybe_recv(recv_buffer[0..]) catch |err| {
+                log.warn("Kicking {}. Reason: recv() call failed. {}\n", .{ sender, err });
                 leavers.append(sender);
                 continue;
             } orelse continue; // maybe_recv has an incomplete packet
