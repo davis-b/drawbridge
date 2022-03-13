@@ -66,41 +66,44 @@ pub fn main() !void {
             // Does not send a notify_connect signal or ask for a world state update, because it is not yet in a room.
         } else {
             const sender: *Client = clients.getPtr(readable_fd).?;
-            // Partial messages are buffered until they are complete.
-            const packet = sender.connection.maybe_recv(recv_buffer[0..]) catch |err| {
+            _ = sender.connection.recv_nomsg(recv_buffer[0..]) catch |err| {
                 log.warn("Kicking {}. Reason: recv() call failed. {}\n", .{ sender, err });
-                leavers.append(sender);
-                continue;
-            } orelse continue; // maybe_recv has an incomplete packet
-            defer allocator.free(packet);
-
-            const unwrapped_packet = net.unwrap(.client, packet) catch {
-                log.warn("Kicking {}. Reason: invalid packet.\n", .{sender});
                 leavers.append(sender);
                 continue;
             };
 
-            switch (unwrapped_packet.kind) {
-                .room_request => try room_request(sender, &rooms, unwrapped_packet.data),
-                else => {
-                    // If a client is not in a room, or is in an empty room, they should not be sending packets in the first place.
-                    // However, packets could be in transit before the client gets the message that they are alone in a room.
-                    if (sender.room == null) continue;
-                    if (sender.room.?.count() == 1) continue;
-                    switch (unwrapped_packet.kind) {
-                        .room_request => unreachable,
+            while (sender.connection.pop_msg()) |packet| {
+                defer allocator.free(packet);
 
-                        // Forward world state to appropriate client.
-                        .return_state => try recv_world_state(allocator, sender, unwrapped_packet.data),
+                log.debug("unwrapping '{}' len packet from {}", .{ packet.len, sender });
+                const unwrapped_packet = net.unwrap(.client, packet) catch |err| {
+                    log.warn("Kicking {}. Reason: invalid packet ({}).\n", .{ sender, err });
+                    leavers.append(sender);
+                    break;
+                };
 
-                        // Forward packet to all eligible clients in same room as sender.
-                        .draw_action => {
-                            var new_packet = try protocol.pack_action(allocator, sender.id, unwrapped_packet.data);
-                            defer allocator.free(new_packet);
-                            try send_to_peers(sender, new_packet);
-                        },
-                    }
-                },
+                switch (unwrapped_packet.kind) {
+                    .room_request => try room_request(sender, &rooms, unwrapped_packet.data),
+                    else => {
+                        // If a client is not in a room, or is in an empty room, they should not be sending packets in the first place.
+                        // However, packets could be in transit before the client gets the message that they are alone in a room.
+                        if (sender.room == null) continue;
+                        if (sender.room.?.count() == 1) continue;
+                        switch (unwrapped_packet.kind) {
+                            .room_request => unreachable,
+
+                            // Forward world state to appropriate client.
+                            .return_state => try recv_world_state(allocator, sender, unwrapped_packet.data),
+
+                            // Forward packet to all eligible clients in same room as sender.
+                            .draw_action => {
+                                var new_packet = try protocol.pack_action(allocator, sender.id, unwrapped_packet.data);
+                                defer allocator.free(new_packet);
+                                try send_to_peers(sender, new_packet);
+                            },
+                        }
+                    },
+                }
             }
         }
     }
@@ -219,7 +222,7 @@ fn recv_world_state(allocator: *std.mem.Allocator, sender: *Client, packet: []co
 
 /// Completely purges a client from the server.
 fn purge_client(client: *Client, poller: *Poller, clients: *management.FdMap) !void {
-    try notify_disconnect(client);
+    if (client.room != null) try notify_disconnect(client);
     management.remove_from_room(client);
     try poller.remove(client.fd);
     client.deinit();
