@@ -24,6 +24,7 @@ const PacketOriginator = enum {
 
 /// Unwraps the outermost (client <-> server) layer of a packet.
 pub fn unwrap(comptime originator: PacketOriginator, data: []const u8) !Packet(originator) {
+    if (data.len == 0) return error.EmptyPacket;
     const T = Packet(originator);
     return T{
         .kind = try std.meta.intToEnum(std.meta.fieldInfo(T, .kind).field_type, data[0]),
@@ -41,4 +42,14 @@ test "unwrap" {
     try std.testing.expectEqual(packet.data.len, 2);
     try std.testing.expectEqual(packet.data[0], 2);
     try std.testing.expectEqual(packet.data[1], 3);
+}
+
+test "unwrap errors" {
+    const empty_packet = [0]u8{};
+    try std.testing.expectError(error.EmptyPacket, unwrap(.client, empty_packet[0..]));
+
+    var raw_packet_no_data = [_]u8{0};
+    try std.testing.expectEqual((try unwrap(.client, raw_packet_no_data[0..])).data.len, 0);
+    raw_packet_no_data[0] = 255;
+    try std.testing.expectError(error.InvalidEnumTag, unwrap(.client, raw_packet_no_data[0..]));
 }
