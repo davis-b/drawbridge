@@ -132,6 +132,17 @@ pub fn main() !void {
             while (c.SDL_PollEvent(&event) == 1) {
                 const maybe_action = onEvent(event, &world, &local_user, &running);
                 if (maybe_action) |action| {
+                    // Until we have a preview of each client's cursor set up, save bandwith by not sending out unnecessary packets.
+                    // When we do send these packets, we could probably get away with sending only some of them each second.
+                    switch (action) {
+                        .cursor_move => {
+                            if (!local_user.drawing) {
+                                doAction(action, &local_user, &whiteboard);
+                                continue;
+                            }
+                        },
+                        else => {},
+                    }
                     if (world.peers.count() > 0 and fully_joined_room) {
                         netPipe.out.put(.{ .action = action }) catch {
                             std.debug.print("Outgoing network pipe is full. Action ignored!\n", .{});
