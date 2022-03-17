@@ -8,8 +8,6 @@ const Response = net.FromServer.Response;
 const ClientIdT = @import("client.zig").ClientIdT;
 const management = @import("management.zig");
 
-const MAX_ROOM_NAME_LEN = 100;
-
 /// Takes a draw_action packet to forward.
 /// Prepends the sender's ID and the packet type.
 /// Caller owns the memory.

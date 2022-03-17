@@ -7,7 +7,6 @@ const mot = @import("mot");
 const net = @import("net");
 
 const Poller = @import("Poller.zig");
-const misc = @import("misc.zig");
 const management = @import("management.zig");
 const protocol = @import("protocol.zig");
 const Client = @import("client.zig").Client;

@@ -5,8 +5,6 @@
 const std = @import("std");
 const log = std.log.default;
 
-const Client = @import("management.zig").Client;
-
 const PollFds = std.ArrayList(std.os.pollfd);
 
 const Poller = @This();
