@@ -46,10 +46,15 @@ pub fn startSending(context: ThreadContext) void {
                 packetBytes = world_bytes;
             },
             .exit => {
+                const exit_packet = [1]u8{@enumToInt(net.FromClient.Kind.disconnect)};
+                context.client.send(exit_packet[0..]) catch |err| {
+                    std.debug.print("Error while sending 'disconnect' packet to server ({})\n", .{err});
+                };
                 std.debug.print("Exiting network out thread\n", .{});
                 break;
             },
         }
+
         defer context.allocator.free(packetBytes);
         context.client.send(packetBytes) catch |err| {
             std.debug.print("error while sending packet: {}\n", .{err});

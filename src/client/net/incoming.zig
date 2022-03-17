@@ -26,6 +26,7 @@ pub fn startReceiving(context: ThreadContext) void {
             context.pipe.meta.put(.net_exit) catch {
                 std.debug.print("Network read thread encountered a queue error while exiting.\n", .{});
             };
+            std.debug.print("Network read thread socket closed\n", .{});
             break;
         };
         // Our queue implementation copies the item we give it.

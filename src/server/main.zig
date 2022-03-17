@@ -87,13 +87,17 @@ pub fn main() !void {
 
                 switch (unwrapped_packet.kind) {
                     .room_request => try room_request(sender, &rooms, unwrapped_packet.data),
+                    .disconnect => {
+                        log.info("{} has chosen to disconnect from the server", .{sender});
+                        leavers.append(sender);
+                    },
                     else => {
                         // If a client is not in a room, or is in an empty room, they should not be sending packets in the first place.
                         // However, packets could be in transit before the client gets the message that they are alone in a room.
                         if (sender.room == null) continue;
                         if (sender.room.?.count() == 1) continue;
                         switch (unwrapped_packet.kind) {
-                            .room_request => unreachable,
+                            .room_request, .disconnect => unreachable,
 
                             // Forward world state to appropriate client.
                             .return_state => try recv_world_state(allocator, sender, unwrapped_packet.data),

@@ -9,6 +9,9 @@ pub const Kind = packed enum(u8) {
 
     /// Returning the server's request for the sender's current world state.
     return_state,
+
+    /// The client is disconnecting from the server.
+    disconnect,
 };
 
 /// Packs the outermost (client -> server) layer of a packet.
