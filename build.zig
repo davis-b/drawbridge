@@ -39,7 +39,7 @@ pub fn build(b: *Builder) void {
     inline for ([_][]const u8{
         "src/net/index.zig",
         "src/client/net/outgoing.zig",
-        "src/server/protocol.zig",
+        "src/server/pack.zig",
         "src/server/management.zig",
     }) |testPath| {
         const test1 = b.addTest(testPath);

@@ -8,7 +8,7 @@ const net = @import("net");
 
 const Poller = @import("Poller.zig");
 const management = @import("management.zig");
-const protocol = @import("protocol.zig");
+const pack = @import("pack.zig");
 const Client = @import("client.zig").Client;
 const accept_client = @import("client.zig").accept_client;
 
@@ -100,7 +100,7 @@ pub fn main() !void {
 
                             // Forward packet to all eligible clients in same room as sender.
                             .draw_action => {
-                                var new_packet = try protocol.pack_action(allocator, sender.id, unwrapped_packet.data);
+                                var new_packet = try pack.pack_action(allocator, sender.id, unwrapped_packet.data);
                                 defer allocator.free(new_packet);
                                 try send_to_peers(sender, new_packet);
                             },
@@ -117,19 +117,19 @@ pub fn main() !void {
 fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []const u8) !void {
     const room_name = management.validate_room_name(requested_room) catch {
         log.warn("Client requested a room using a packet that was too small. This should not happen.", .{});
-        _ = requester.send(protocol.pack_response(.room_full)[0..], "response: full room; invalid room name");
+        _ = requester.send(pack.pack_response(.room_full)[0..], "response: full room; invalid room name");
         return;
     };
     // If room is null, treat it as having space, as we'll create it for this user.
     if (!(rooms.room_has_space(room_name) orelse true)) {
-        _ = requester.send(protocol.pack_response(.room_full)[0..], "response: full room");
+        _ = requester.send(pack.pack_response(.room_full)[0..], "response: full room");
         return; // If requested room is full, we will not change any state.
     }
     if (requester.room) |r| management.remove_from_room(requester);
     try rooms.add_client(requester, room_name);
 
     if (requester.room.?.count() == 1) {
-        _ = requester.send(protocol.pack_response(.room_empty)[0..], "response: empty room");
+        _ = requester.send(pack.pack_response(.room_empty)[0..], "response: empty room");
     } else {
         requester.init_packet_buffer();
         try notify_connect(requester);
@@ -137,7 +137,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
             switch (err) {
                 error.PeersUnableToSupplyState => {
                     log.warn("Non-empty room was unable to find a client without a packet history. Asking new client to try again soon.", .{});
-                    const successful_send = requester.send(protocol.pack_response(.try_again)[0..], "response: try again");
+                    const successful_send = requester.send(pack.pack_response(.try_again)[0..], "response: try again");
                     // We don't want this client spending any more time in the room than required.
                     management.remove_from_room(requester); // safe to call multiple times.
 
@@ -151,7 +151,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
                 else => return err,
             }
         };
-        _ = requester.send(protocol.pack_response(.room_state_incoming)[0..], "response: room state incoming");
+        _ = requester.send(pack.pack_response(.room_state_incoming)[0..], "response: room state incoming");
     }
 }
 
@@ -161,7 +161,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
 fn request_world_state(requester: *Client) !void {
     if (requester.room) |room| {
         const person_with_state = (try room.request_world_state_source(requester)) orelse return error.PeersUnableToSupplyState;
-        _ = person_with_state.send(protocol.pack_generic(.state_query, person_with_state.id)[0..], "state query");
+        _ = person_with_state.send(pack.pack_generic(.state_query, person_with_state.id)[0..], "state query");
     } else {
         return error.NullRoom;
     }
@@ -204,14 +204,14 @@ fn recv_world_state(allocator: *std.mem.Allocator, sender: *Client, packet: []co
         }
     };
 
-    const new_packet = try protocol.pack_world_update(allocator, packet);
+    const new_packet = try pack.pack_world_update(allocator, packet);
     defer allocator.free(new_packet);
 
     if (recipient.packet_buffer) |*packets| {
         _ = recipient.send(new_packet, "world state update");
         for (packets.items()) |old_packet| {
             // Skip old packets from the world state sender. They are already included in the world state.
-            if (protocol.action_sender_id(old_packet) != sender.id) {
+            if (pack.discern_action_sender_id(old_packet) != sender.id) {
                 _ = recipient.send(old_packet, "replaying old packets");
             }
         }
@@ -234,12 +234,12 @@ fn purge_client(client: *Client, poller: *Poller, clients: *management.FdMap) !v
 
 /// Notify a client's peers when it disconnects from a room.
 fn notify_disconnect(client: *Client) !void {
-    try send_to_peers(client, protocol.pack_generic(.peer_exit, client.id)[0..]);
+    try send_to_peers(client, pack.pack_generic(.peer_exit, client.id)[0..]);
 }
 
 /// Notify a client's peers when it connects to a room.
 fn notify_connect(client: *Client) !void {
-    try send_to_peers(client, protocol.pack_generic(.peer_entry, client.id)[0..]);
+    try send_to_peers(client, pack.pack_generic(.peer_entry, client.id)[0..]);
 }
 
 /// Handle clients that have left or have been flagged for removal.

@@ -51,7 +51,7 @@ pub fn pack_response(kind: Response) [2]u8 {
 //
 
 /// Takes a packed (server-modified) draw_action packet and returns the ID of the sender.
-pub fn action_sender_id(packet: []const u8) ClientIdT {
+pub fn discern_action_sender_id(packet: []const u8) ClientIdT {
     return packet[1];
 }
 
@@ -59,5 +59,5 @@ test "pack and check sender" {
     const data = [_]u8{ 0, 1, 2 };
     const packet = try pack_action(std.testing.allocator, 33, data[0..]);
     defer std.testing.allocator.free(packet);
-    try std.testing.expectEqual(action_sender_id(packet), 33);
+    try std.testing.expectEqual(discern_action_sender_id(packet), 33);
 }
