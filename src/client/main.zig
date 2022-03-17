@@ -120,10 +120,18 @@ pub fn main() !void {
         }
     } else {
         defer {
-            netPipe.out.put(.{ .exit = {} }) catch std.debug.print("unable to push exit flag to net-out-thread\n", .{});
-            netThreads[0].wait(); // outgoing packets thread
-            // netThreads[1].wait(); // incoming packets thread // TODO What's a reliable method of exiting this thread?
-            netConnection.deinit();
+            var should_wait = true;
+            netPipe.out.put(.{ .exit = {} }) catch {
+                std.debug.print("unable to push exit flag to net-out-thread\n", .{});
+                netConnection.deinit();
+                should_wait = false;
+            };
+            if (should_wait) {
+                netThreads[0].wait(); // outgoing packets thread
+                // TODO reliably send an exit signal to this thread on multiple platforms.
+                // netThreads[1].wait(); // incoming packets thread
+                netConnection.deinit();
+            }
         }
         while (running) {
             renderImage(world.surface, world.image);
