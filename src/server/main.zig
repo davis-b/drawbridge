@@ -14,7 +14,7 @@ const accept_client = @import("client.zig").accept_client;
 
 const Options = struct {
     port: u16 = 9890,
-    // ip: []const u8 = "0.0.0.0",
+    ip: []const u8 = "0.0.0.0",
 };
 
 // TODO should we disable forwarding packets from clients that have a packet buffer active?
@@ -28,9 +28,9 @@ pub fn main() !void {
     var allocator = &gpa.allocator;
 
     const options = try parser.parseAdvanced(allocator, Options, .{ .argv = std.os.argv });
-    // const options = try parser.parse(Options, "-", false);
+
     // open server
-    var server = try init_server(options.port);
+    var server = try init_server(options.ip, options.port);
     defer server.deinit();
     defer server.close();
 
@@ -254,12 +254,12 @@ fn handle_leavers(leavers: *management.Leavers, poller: *Poller, clients: *manag
     leavers.clients.clearAndFree();
 }
 
-fn init_server(port: u16) !std.net.StreamServer {
+fn init_server(ip: []const u8, port: u16) !std.net.StreamServer {
     var server = std.net.StreamServer.init(.{ .reuse_address = true });
     errdefer server.deinit();
     errdefer server.close();
 
-    const addr = try std.net.Address.resolveIp("0.0.0.0", port);
+    const addr = try std.net.Address.resolveIp(ip, port);
     log.debug("starting server at: {}", .{addr});
     try server.listen(addr);
     return server;
