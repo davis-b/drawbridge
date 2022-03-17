@@ -71,7 +71,7 @@ pub fn main() !void {
             const sender: *Client = clients.getPtr(readable_fd).?;
             _ = sender.connection.recv_nomsg(recv_buffer[0..]) catch |err| {
                 log.warn("Kicking {}. Reason: recv() call failed. {}\n", .{ sender, err });
-                leavers.append(sender);
+                try leavers.append(sender);
                 continue;
             };
 
@@ -81,7 +81,7 @@ pub fn main() !void {
                 log.debug("unwrapping '{}' len packet from {}", .{ packet.len, sender });
                 const unwrapped_packet = net.unwrap(.client, packet) catch |err| {
                     log.warn("Kicking {}. Reason: invalid packet ({}).\n", .{ sender, err });
-                    leavers.append(sender);
+                    try leavers.append(sender);
                     break;
                 };
 
@@ -89,7 +89,7 @@ pub fn main() !void {
                     .room_request => try room_request(sender, &rooms, unwrapped_packet.data),
                     .disconnect => {
                         log.info("{} has chosen to disconnect from the server", .{sender});
-                        leavers.append(sender);
+                        try leavers.append(sender);
                     },
                     else => {
                         // If a client is not in a room, or is in an empty room, they should not be sending packets in the first place.
@@ -121,19 +121,19 @@ pub fn main() !void {
 fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []const u8) !void {
     const room_name = management.validate_room_name(requested_room) catch {
         log.warn("Client requested a room using a packet that was too small. This should not happen.", .{});
-        _ = requester.send(pack.pack_response(.room_full)[0..], "response: full room; invalid room name");
+        _ = try requester.send(pack.pack_response(.room_full)[0..], "response: full room; invalid room name");
         return;
     };
     // If room is null, treat it as having space, as we'll create it for this user.
     if (!(rooms.room_has_space(room_name) orelse true)) {
-        _ = requester.send(pack.pack_response(.room_full)[0..], "response: full room");
+        _ = try requester.send(pack.pack_response(.room_full)[0..], "response: full room");
         return; // If requested room is full, we will not change any state.
     }
     if (requester.room) |r| management.remove_from_room(requester);
     try rooms.add_client(requester, room_name);
 
     if (requester.room.?.count() == 1) {
-        _ = requester.send(pack.pack_response(.room_empty)[0..], "response: empty room");
+        _ = try requester.send(pack.pack_response(.room_empty)[0..], "response: empty room");
     } else {
         requester.init_packet_buffer();
         try notify_connect(requester);
@@ -141,7 +141,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
             switch (err) {
                 error.PeersUnableToSupplyState => {
                     log.warn("Non-empty room was unable to find a client without a packet history. Asking new client to try again soon.", .{});
-                    const successful_send = requester.send(pack.pack_response(.try_again)[0..], "response: try again");
+                    const successful_send = try requester.send(pack.pack_response(.try_again)[0..], "response: try again");
                     // We don't want this client spending any more time in the room than required.
                     management.remove_from_room(requester); // safe to call multiple times.
 
@@ -155,7 +155,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
                 else => return err,
             }
         };
-        _ = requester.send(pack.pack_response(.room_state_incoming)[0..], "response: room state incoming");
+        _ = try requester.send(pack.pack_response(.room_state_incoming)[0..], "response: room state incoming");
     }
 }
 
@@ -165,7 +165,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
 fn request_world_state(requester: *Client) !void {
     if (requester.room) |room| {
         const person_with_state = (try room.request_world_state_source(requester)) orelse return error.PeersUnableToSupplyState;
-        _ = person_with_state.send(pack.pack_generic(.state_query, person_with_state.id)[0..], "state query");
+        _ = try person_with_state.send(pack.pack_generic(.state_query, person_with_state.id)[0..], "state query");
     } else {
         return error.NullRoom;
     }
@@ -179,7 +179,7 @@ fn send_to_peers(sender: *Client, packet: []const u8) !void {
             if (peer.packet_buffer) |*packets| {
                 try packets.store(packet);
             } else {
-                _ = peer.send(packet, "broadcast");
+                _ = try peer.send(packet, "broadcast");
             }
         }
     } else {
@@ -212,11 +212,11 @@ fn recv_world_state(allocator: *std.mem.Allocator, sender: *Client, packet: []co
     defer allocator.free(new_packet);
 
     if (recipient.packet_buffer) |*packets| {
-        _ = recipient.send(new_packet, "world state update");
+        _ = try recipient.send(new_packet, "world state update");
         for (packets.items()) |old_packet| {
             // Skip old packets from the world state sender. They are already included in the world state.
             if (pack.discern_action_sender_id(old_packet) != sender.id) {
-                _ = recipient.send(old_packet, "replaying old packets");
+                _ = try recipient.send(old_packet, "replaying old packets");
             }
         }
         packets.deinit();

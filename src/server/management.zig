@@ -269,11 +269,11 @@ pub const Leavers = struct {
         self.clients.deinit();
     }
 
-    pub fn append(self: *Leavers, client: *Client) void {
+    pub fn append(self: *Leavers, client: *Client) !void {
         for (self.clients.items) |c| {
             if (c == client) return;
         }
-        self.clients.append(client) catch @panic("memory error while adding client to leaver list");
+        try self.clients.append(client);
     }
 };
 

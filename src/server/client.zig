@@ -46,13 +46,15 @@ pub const Client = struct {
     }
 
     /// Sends a packet and handles errors.
-    /// Returns true if the packet was sent, false if there was an error.
-    pub fn send(self: *Client, packet: []const u8, log_note: ?[]const u8) bool {
+    /// Returns true if the packet was sent, false if there was a network error, and other errors get raised.
+    pub fn send(self: *Client, packet: []const u8, log_note: ?[]const u8) !bool {
         self.connection.send(packet) catch |err| {
-            // TODO We should probably return non network errors.
             log.warn("Kicking {}. Reason: send() failed ({s}) ({}).\n", .{ self, log_note, err });
-            self.leavers.append(self);
-            return false;
+            try self.leavers.append(self);
+            switch (err) {
+                error.BrokenPipe, error.ConnectionResetByPeer => return false,
+                else => return err,
+            }
         };
         return true;
     }
