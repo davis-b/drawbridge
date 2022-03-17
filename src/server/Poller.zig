@@ -20,6 +20,10 @@ pub fn deinit(self: *Poller) void {
     self.pfds.deinit();
 }
 
+/// Blocks until a FD that we are polling has data to read.
+/// Returns that file descriptor.
+/// If there are multiple open descriptors,
+///  return them in sequence before polling for new ones.
 pub fn readable(self: *Poller) !std.os.fd_t {
     // No reason to poll if we already have data to read, right?
     // We could of course poll anyway and get more fd's, but that could result
