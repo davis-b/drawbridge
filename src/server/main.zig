@@ -17,7 +17,11 @@ const Options = struct {
     ip: []const u8 = "0.0.0.0",
 };
 
-// TODO should we disable forwarding packets from clients that have a packet buffer active?
+// TODO
+// Implement timeout for state copying (to prevent one client from holding up new ones)
+// Interactably query current users, rooms, used memory
+// Log some packet data, in case of crashes
+// Limit allocations for each user, possibly with a build-time arg. We can't allow each user to allocate so much memory on the server. This will mean breaking up the world_state packet into smaller packets.
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
