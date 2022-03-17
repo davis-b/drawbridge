@@ -59,6 +59,7 @@ pub fn action_sender_id(packet: []const u8) ClientIdT {
 
 test "pack and check sender" {
     const data = [_]u8{ 0, 1, 2 };
-    const packet = pack_action(std.testing.allocator, 33, data[0..]);
-    try std.testing.expectEqual(action_sender_id(p), 33);
+    const packet = try pack_action(std.testing.allocator, 33, data[0..]);
+    defer std.testing.allocator.free(packet);
+    try std.testing.expectEqual(action_sender_id(packet), 33);
 }

@@ -316,7 +316,8 @@ test "add to room" {
 
 test "remove from room" {
     const allocator = std.testing.allocator;
-    var room = Room.init(allocator);
+    const room_name = "test room";
+    var room = try Room.init(allocator, room_name[0..]);
     defer room.deinit();
 
     var client = Client{ .room = &room, .index = 0, .fd = undefined, .connection = undefined, .id = undefined, .leavers = undefined };
