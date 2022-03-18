@@ -20,7 +20,6 @@ const Options = struct {
 // TODO
 // Implement timeout for state copying (to prevent one client from holding up new ones)
 // Interactably query current users, rooms, used memory
-// Log some packet data, in case of crashes
 // Limit allocations for each user, possibly with a build-time arg. We can't allow each user to allocate so much memory on the server. This will mean breaking up the world_state packet into smaller packets.
 
 pub fn main() !void {
@@ -70,7 +69,7 @@ pub fn main() !void {
         } else {
             const sender: *Client = clients.getPtr(readable_fd).?;
             _ = sender.connection.recv_nomsg(recv_buffer[0..]) catch |err| {
-                log.warn("Kicking {}. Reason: recv() call failed. {}\n", .{ sender, err });
+                log.warn("Kicking {}. Reason: recv() call failed. {}", .{ sender, err });
                 try leavers.append(sender);
                 continue;
             };
@@ -78,15 +77,17 @@ pub fn main() !void {
             while (sender.connection.pop_msg()) |packet| {
                 defer allocator.free(packet);
 
-                log.debug("unwrapping '{}' len packet from {}", .{ packet.len, sender });
                 const unwrapped_packet = net.unwrap(.client, packet) catch |err| {
-                    log.warn("Kicking {}. Reason: invalid packet ({}).\n", .{ sender, err });
+                    log.warn("Kicking {}. Reason: invalid packet ({}).", .{ sender, err });
                     try leavers.append(sender);
                     break;
                 };
 
                 switch (unwrapped_packet.kind) {
-                    .room_request => try room_request(sender, &rooms, unwrapped_packet.data),
+                    .room_request => {
+                        log.info("{} requesting to join room \"{s}\"", .{ sender, unwrapped_packet.data });
+                        try room_request(sender, &rooms, unwrapped_packet.data);
+                    },
                     .disconnect => {
                         log.info("{} has chosen to disconnect from the server", .{sender});
                         try leavers.append(sender);
@@ -100,7 +101,10 @@ pub fn main() !void {
                             .room_request, .disconnect => unreachable,
 
                             // Forward world state to appropriate client.
-                            .return_state => try recv_world_state(allocator, sender, unwrapped_packet.data),
+                            .return_state => {
+                                log.info("{} returning state of len {}", .{ sender, unwrapped_packet.data.len });
+                                try recv_world_state(allocator, sender, unwrapped_packet.data);
+                            },
 
                             // Forward packet to all eligible clients in same room as sender.
                             .draw_action => {
