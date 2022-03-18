@@ -108,6 +108,7 @@ pub const Room = struct {
 /// Connects a client with an up to date state of the room to a list of clients requesting the room's state.
 const ClientStateLinker = struct {
     const Self = @This();
+    /// A mapping of a client with state to a list of clients waiting to receive that state.
     links: std.AutoHashMap(ClientIdT, std.ArrayList(?ClientIdT)),
     allocator: *std.mem.Allocator,
 
@@ -130,7 +131,20 @@ const ClientStateLinker = struct {
     /// Can return null if there are no viable clients to request state from.
     /// Sets up a link between the requester and the returned client.
     fn link(self: *Self, requester: ClientIdT, room: *Room) !?*Client {
-        // TODO optimize this by prioritizing clients that aren't already linked.
+        // First loop through the list of clients, ignores clients that are already linked.
+        for (room.clients.items) |client| {
+            if (client.id == requester) continue;
+            // We shouldn't request a world state from someone who doesn't have a complete one.
+            if (client.packet_buffer) |_| continue;
+
+            if (self.links.contains(client.id)) continue;
+
+            try self.appendMaybeCreate(client.id, requester);
+            return client;
+        }
+
+        // Second loop through the list of clients looks for any available client,
+        // choosing not to ignore clients that are already linked.
         for (room.clients.items) |client| {
             if (client.id == requester) continue;
             // We shouldn't request a world state from someone who doesn't have a complete one.
