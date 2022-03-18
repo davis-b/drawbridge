@@ -1,5 +1,4 @@
 const std = @import("std");
-const log = std.log.default;
 
 const parser = @import("parser");
 const mot = @import("mot");
@@ -26,7 +25,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
         const leaked = gpa.deinit();
-        if (leaked) log.crit("memory leak detected\n", .{});
+        if (leaked) std.log.crit("memory leak detected\n", .{});
     }
     var allocator = &gpa.allocator;
 
@@ -64,12 +63,12 @@ pub fn main() !void {
             // Register new client
             try clients.put(new.fd, new);
             try poller.add(new.fd);
-            log.info("New client: {}", .{new});
+            std.log.info("New client: {}", .{new});
             // Does not send a notify_connect signal or ask for a world state update, because it is not yet in a room.
         } else {
             const sender: *Client = clients.getPtr(readable_fd).?;
             _ = sender.connection.recv_nomsg(recv_buffer[0..]) catch |err| {
-                log.warn("Kicking {}. Reason: recv() call failed. {}", .{ sender, err });
+                std.log.warn("Kicking {}. Reason: recv() call failed. {}", .{ sender, err });
                 try leavers.append(sender);
                 continue;
             };
@@ -78,18 +77,18 @@ pub fn main() !void {
                 defer allocator.free(packet);
 
                 const unwrapped_packet = net.unwrap(.client, packet) catch |err| {
-                    log.warn("Kicking {}. Reason: invalid packet ({}).", .{ sender, err });
+                    std.log.warn("Kicking {}. Reason: invalid packet ({}).", .{ sender, err });
                     try leavers.append(sender);
                     break;
                 };
 
                 switch (unwrapped_packet.kind) {
                     .room_request => {
-                        log.info("{} requesting to join room \"{s}\"", .{ sender, unwrapped_packet.data });
+                        std.log.info("{} requesting to join room \"{s}\"", .{ sender, unwrapped_packet.data });
                         try room_request(sender, &rooms, unwrapped_packet.data);
                     },
                     .disconnect => {
-                        log.info("{} has chosen to disconnect from the server", .{sender});
+                        std.log.info("{} has chosen to disconnect from the server", .{sender});
                         try leavers.append(sender);
                     },
                     else => {
@@ -102,7 +101,7 @@ pub fn main() !void {
 
                             // Forward world state to appropriate client.
                             .return_state => {
-                                log.info("{} returning state of len {}", .{ sender, unwrapped_packet.data.len });
+                                std.log.info("{} returning state of len {}", .{ sender, unwrapped_packet.data.len });
                                 try recv_world_state(allocator, sender, unwrapped_packet.data);
                             },
 
@@ -124,7 +123,7 @@ pub fn main() !void {
 /// Try moving that client to the room, ask a client to share world state.
 fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []const u8) !void {
     const room_name = management.validate_room_name(requested_room) catch {
-        log.warn("Client requested a room using a packet that was too small. This should not happen.", .{});
+        std.log.warn("Client requested a room using a packet that was too small. This should not happen.", .{});
         _ = try requester.send(pack.pack_response(.room_full)[0..], "response: full room; invalid room name");
         return;
     };
@@ -144,7 +143,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
         request_world_state(requester) catch |err| {
             switch (err) {
                 error.PeersUnableToSupplyState => {
-                    log.warn("Non-empty room was unable to find a client without a packet history. Asking new client to try again soon.", .{});
+                    std.log.warn("Non-empty room was unable to find a client without a packet history. Asking new client to try again soon.", .{});
                     const successful_send = try requester.send(pack.pack_response(.try_again)[0..], "response: try again");
                     // We don't want this client spending any more time in the room than required.
                     management.remove_from_room(requester); // safe to call multiple times.
@@ -187,7 +186,7 @@ fn send_to_peers(sender: *Client, packet: []const u8) !void {
             }
         }
     } else {
-        log.warn("Tried to send_to_peers() with a sender that is not in a room", .{});
+        std.log.warn("Tried to send_to_peers() with a sender that is not in a room", .{});
     }
 }
 
@@ -203,11 +202,11 @@ fn recv_world_state(allocator: *std.mem.Allocator, sender: *Client, packet: []co
                 break :blk receiver;
             } else {
                 // Likely the recipient has left the room already. Do nothing.
-                log.info("Client {} tried sending a world_state update packet. Unable to find recipient in same room.", .{sender});
+                std.log.info("Client {} tried sending a world_state update packet. Unable to find recipient in same room.", .{sender});
                 return;
             }
         } else {
-            log.info("Client {} tried sending a world_state update packet. Client is not in a room.", .{sender});
+            std.log.info("Client {} tried sending a world_state update packet. Client is not in a room.", .{sender});
             return;
         }
     };
@@ -227,7 +226,7 @@ fn recv_world_state(allocator: *std.mem.Allocator, sender: *Client, packet: []co
         recipient.packet_buffer = null;
     } else {
         // Is the recipient in an invalid state, or is there a network delay causing this?
-        log.err("A world state update was sent from '{}', to '{}'. However, the recipient does not have a packet history.", .{ sender, recipient });
+        std.log.err("A world state update was sent from '{}', to '{}'. However, the recipient does not have a packet history.", .{ sender, recipient });
     }
 }
 
@@ -272,7 +271,24 @@ fn init_server(ip: []const u8, port: u16) !std.net.StreamServer {
     errdefer server.close();
 
     const addr = try std.net.Address.resolveIp(ip, port);
-    log.debug("starting server at: {}", .{addr});
+    std.log.debug("starting server at: {}", .{addr});
     try server.listen(addr);
     return server;
+}
+
+// Define root.log to override the std implementation
+pub fn log(
+    comptime level: std.log.Level,
+    comptime scope: @TypeOf(.EnumLiteral),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    const prefix = "[" ++ @tagName(level) ++ "] [{}] ";
+
+    // Print the message to stderr, silently ignoring any errors
+    const held = std.debug.getStderrMutex().acquire();
+    defer held.release();
+    const stderr = std.io.getStdErr().writer();
+    nosuspend stderr.print(prefix, .{@rem(std.time.timestamp(), 1000)}) catch return;
+    nosuspend stderr.print(format ++ "\n", args) catch return;
 }

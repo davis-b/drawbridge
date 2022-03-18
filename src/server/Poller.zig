@@ -3,7 +3,6 @@
 // and pass the errors along to the caller.
 
 const std = @import("std");
-const log = std.log.default;
 
 const PollFds = std.ArrayList(std.os.pollfd);
 
@@ -32,7 +31,6 @@ pub fn readable(self: *Poller) !std.os.fd_t {
         self.index = 0;
         self.open_fds = try std.os.poll(self.pfds.items[0..], -1);
 
-        // log.info("open fds: {}\n", .{self.open_fds});
         if (self.open_fds == 0) {
             @panic("poll timeout");
         }

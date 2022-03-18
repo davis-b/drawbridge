@@ -1,5 +1,4 @@
 const std = @import("std");
-const log = std.log.default;
 
 const Client = @import("client.zig").Client;
 const ClientIdT = @import("client.zig").ClientIdT;

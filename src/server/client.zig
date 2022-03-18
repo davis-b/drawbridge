@@ -1,5 +1,5 @@
 const std = @import("std");
-const log = std.log.default;
+const log = std.log;
 
 const mot = @import("mot");
 
