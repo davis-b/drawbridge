@@ -121,7 +121,7 @@ pub fn main() !void {
     } else {
         defer {
             var should_wait = true;
-            netPipe.out.put(.{ .exit = {} }) catch {
+            netPipe.out.put(.{ .disconnect = {} }) catch {
                 std.debug.print("unable to push exit flag to net-out-thread\n", .{});
                 netConnection.deinit();
                 should_wait = false;

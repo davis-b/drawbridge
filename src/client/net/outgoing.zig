@@ -15,7 +15,7 @@ pub const ToForward = union(enum) {
     /// They cannot be freed until after they are sent out to the server.
     state: []u8,
 
-    exit: void,
+    disconnect: void,
 };
 
 /// Data to be serialized.
@@ -45,7 +45,7 @@ pub fn startSending(context: ThreadContext) void {
             .state => |world_bytes| {
                 packetBytes = world_bytes;
             },
-            .exit => {
+            .disconnect => {
                 const exit_packet = [1]u8{@enumToInt(net.FromClient.Kind.disconnect)};
                 context.client.send(exit_packet[0..]) catch |err| {
                     std.debug.print("Error while sending 'disconnect' packet to server ({})\n", .{err});
