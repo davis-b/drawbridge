@@ -201,7 +201,7 @@ pub fn main() !void {
                         }
                         // NOTE this is where we might set image size, or maybe image size is set when entering a room
                         world.image.deserialize(new_state.image);
-                        local_user = users.User{}; // TODO If future state becomes entangled with a User, ensure that state is reset appropriately when resetting this user.
+                        local_user.reset();
                     },
                 }
             }
