@@ -40,7 +40,7 @@ pub fn build(b: *Builder) void {
         "src/net/index.zig",
         "src/client/net/outgoing.zig",
         "src/server/pack.zig",
-        "src/server/management.zig",
+        "src/server/rooms.zig",
     }) |testPath| {
         const test1 = b.addTest(testPath);
         test1.linkSystemLibrary("c");

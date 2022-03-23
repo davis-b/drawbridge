@@ -6,7 +6,8 @@ const mot = @import("mot");
 const net = @import("net");
 
 const Poller = @import("Poller.zig");
-const management = @import("management.zig");
+const Leavers = @import("Leavers.zig");
+const rooms = @import("rooms.zig");
 const pack = @import("pack.zig");
 const Client = @import("client.zig").Client;
 const accept_client = @import("client.zig").accept_client;
@@ -15,6 +16,11 @@ const Options = struct {
     port: u16 = 9890,
     ip: []const u8 = "0.0.0.0",
 };
+
+/// This is what actually owns the Client memory.
+/// A file descriptor is the longest lasting component of a client.
+/// Thus, storing clients in a fd map seems most fitting.
+pub const FdMap = std.AutoHashMap(std.os.fd_t, Client);
 
 // TODO
 // Implement timeout for state copying (to prevent one client from holding up new ones)
@@ -40,14 +46,14 @@ pub fn main() !void {
     defer poller.deinit();
     try poller.add(server.sockfd.?);
 
-    var clients = management.FdMap.init(allocator);
+    var clients = FdMap.init(allocator);
     defer clients.deinit();
-    var rooms = management.Rooms.init(allocator);
-    defer rooms.deinit();
-    defer management.deinit_all_clients(&clients);
+    var active_rooms = rooms.Rooms.init(allocator);
+    defer active_rooms.deinit();
+    defer deinit_all_clients(&clients);
 
     // A list of all clients that have left or will be removed from the server.
-    var leavers = management.Leavers.init(allocator);
+    var leavers = Leavers.init(allocator);
     defer leavers.deinit();
 
     var recv_buffer: [1024]u8 = undefined;
@@ -85,7 +91,7 @@ pub fn main() !void {
                 switch (unwrapped_packet.kind) {
                     .room_request => {
                         std.log.info("{} requesting to join room \"{s}\"", .{ sender, unwrapped_packet.data });
-                        try room_request(sender, &rooms, unwrapped_packet.data);
+                        try room_request(sender, &active_rooms, unwrapped_packet.data);
                     },
                     .disconnect => {
                         std.log.info("{} has chosen to disconnect from the server", .{sender});
@@ -121,19 +127,19 @@ pub fn main() !void {
 
 /// A client has requested to join a room.
 /// Try moving that client to the room, ask a client to share world state.
-fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []const u8) !void {
-    const room_name = management.validate_room_name(requested_room) catch {
+fn room_request(requester: *Client, active_rooms: *rooms.Rooms, requested_room: []const u8) !void {
+    const room_name = rooms.validate_room_name(requested_room) catch {
         std.log.warn("Client requested a room using a packet that was too small. This should not happen.", .{});
         _ = try requester.send(pack.pack_response(.room_full)[0..], "response: full room; invalid room name");
         return;
     };
     // If room is null, treat it as having space, as we'll create it for this user.
-    if (!(rooms.room_has_space(room_name) orelse true)) {
+    if (!(active_rooms.room_has_space(room_name) orelse true)) {
         _ = try requester.send(pack.pack_response(.room_full)[0..], "response: full room");
         return; // If requested room is full, we will not change any state.
     }
-    if (requester.room) |r| management.remove_from_room(requester);
-    try rooms.add_client(requester, room_name);
+    if (requester.room) |r| rooms.remove_from_room(requester);
+    try active_rooms.add_client(requester, room_name);
 
     if (requester.room.?.count() == 1) {
         _ = try requester.send(pack.pack_response(.room_empty)[0..], "response: empty room");
@@ -146,7 +152,7 @@ fn room_request(requester: *Client, rooms: *management.Rooms, requested_room: []
                     std.log.warn("Non-empty room was unable to find a client without a packet history. Asking new client to try again soon.", .{});
                     const successful_send = try requester.send(pack.pack_response(.try_again)[0..], "response: try again");
                     // We don't want this client spending any more time in the room than required.
-                    management.remove_from_room(requester); // safe to call multiple times.
+                    rooms.remove_from_room(requester); // safe to call multiple times.
 
                     // We don't want to notify more than necessary.
                     // If the send is not successful, the client will be added to the leaver's queue.
@@ -231,9 +237,9 @@ fn recv_world_state(allocator: *std.mem.Allocator, sender: *Client, packet: []co
 }
 
 /// Completely purges a client from the server.
-fn purge_client(client: *Client, poller: *Poller, clients: *management.FdMap) !void {
+fn purge_client(client: *Client, poller: *Poller, clients: *FdMap) !void {
     if (client.room != null) try notify_disconnect(client);
-    management.remove_from_room(client);
+    rooms.remove_from_room(client);
     try poller.remove(client.fd);
     client.deinit();
     _ = clients.remove(client.fd);
@@ -250,7 +256,7 @@ fn notify_connect(client: *Client) !void {
 }
 
 /// Handle clients that have left or have been flagged for removal.
-fn handle_leavers(leavers: *management.Leavers, poller: *Poller, clients: *management.FdMap) !void {
+fn handle_leavers(leavers: *Leavers, poller: *Poller, clients: *FdMap) !void {
     var processed_leavers: usize = 0;
     // If new leavers are added while purging a client, handle them here until there are no more leavers.
     while (leavers.clients.items.len > processed_leavers) {
@@ -263,6 +269,13 @@ fn handle_leavers(leavers: *management.Leavers, poller: *Poller, clients: *manag
     }
     // Remove all elements from the array.
     leavers.clients.clearAndFree();
+}
+
+pub fn deinit_all_clients(fdmap: *FdMap) void {
+    var it = fdmap.valueIterator();
+    while (it.next()) |client| {
+        client.deinit();
+    }
 }
 
 fn init_server(ip: []const u8, port: u16) !std.net.StreamServer {

@@ -5,8 +5,8 @@ const mot = @import("mot");
 
 pub const ClientIdT = u8;
 
-const Room = @import("management.zig").Room;
-const Leavers = @import("management.zig").Leavers;
+const Room = @import("rooms.zig").Room;
+const Leavers = @import("Leavers.zig");
 
 /// This is what the server should see each new client as.
 pub const Client = struct {
