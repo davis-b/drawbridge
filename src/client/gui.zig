@@ -20,30 +20,32 @@ const Dimensions = struct {
     const right = .{ .w = 50, .h = 200 };
 };
 
-pub fn init() !Surfaces {
-    var g: Surfaces = undefined;
-    g.header = try initHeader();
-    g.footer = try initFooter();
-    g.left = try initLeft();
-    g.right = try initRight();
-    return g;
-}
+pub const Init = struct {
+    pub fn all() !Surfaces {
+        var s: Surfaces = undefined;
+        s.header = try header();
+        s.footer = try footer();
+        s.left = try left();
+        s.right = try right();
+        return s;
+    }
 
-fn initHeader() !*Surface {
-    return try sdl.display.initRgbSurface(0, Dimensions.header.w, Dimensions.header.h, 24);
-}
+    fn header() !*Surface {
+        return try sdl.display.initRgbSurface(0, Dimensions.header.w, Dimensions.header.h, 24);
+    }
 
-fn initFooter() !*Surface {
-    return try sdl.display.initRgbSurface(0, Dimensions.footer.w, Dimensions.footer.h, 24);
-}
+    fn footer() !*Surface {
+        return try sdl.display.initRgbSurface(0, Dimensions.footer.w, Dimensions.footer.h, 24);
+    }
 
-fn initLeft() !*Surface {
-    return try sdl.display.initRgbSurface(0, Dimensions.left.w, Dimensions.left.h, 24);
-}
+    fn left() !*Surface {
+        return try sdl.display.initRgbSurface(0, Dimensions.left.w, Dimensions.left.h, 24);
+    }
 
-fn initRight() !*Surface {
-    return try sdl.display.initRgbSurface(0, Dimensions.right.w, Dimensions.right.h, 24);
-}
+    fn right() !*Surface {
+        return try sdl.display.initRgbSurface(0, Dimensions.right.w, Dimensions.right.h, 24);
+    }
+};
 
 pub fn drawHeader(surface: *Surface, a: bool, b: bool) void {
     const bg_color = 0xff0000;

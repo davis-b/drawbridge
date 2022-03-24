@@ -46,7 +46,7 @@ pub fn main() !void {
     defer c.SDL_DestroyWindow(window);
 
     const surface = try sdl.display.initSurface(window);
-    var gui_surfaces = try gui.init();
+    var gui_surfaces = try gui.Init.all();
 
     const image_width = 1300;
     const image_height = 800;
