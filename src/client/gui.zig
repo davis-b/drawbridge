@@ -1,3 +1,5 @@
+const log = @import("std").log.scoped(.gui);
+
 const c = @import("c.zig");
 const sdl = @import("sdl/index.zig");
 const fillRect = sdl.display.fillRect;
@@ -97,7 +99,6 @@ pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
 }
 
 pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, x: c_int, y: c_int) void {
-    const warn = @import("std").debug.warn;
     // header
     if (y <= s.header.h) {
         handleHeaderPress(parent, s.header, x, y);
@@ -105,16 +106,16 @@ pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, x: c_int, y: c_int)
     // footer
     else if (y >= parent.h - s.footer.h) {
         const new_y = y - (parent.h - s.footer.h);
-        warn("footer {}x{}\n", .{ x, new_y });
+        log.debug("footer {}x{}", .{ x, new_y });
     }
     // left sidebar
     else if (x <= s.left.w) {
-        warn("left\n", .{});
+        log.debug("left", .{});
     }
     // right sidebar
     else if (x >= parent.w - s.right.w) {
         const new_x = x - (parent.w - s.right.w);
-        warn("right {}x{} \n", .{ new_x, y });
+        log.debug("right {}x{}", .{ new_x, y });
     }
 }
 

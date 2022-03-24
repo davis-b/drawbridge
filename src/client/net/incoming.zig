@@ -1,4 +1,5 @@
 const std = @import("std");
+const log = std.log.scoped(.netin);
 
 const net = @import("net");
 const cereal = @import("cereal");
@@ -24,9 +25,9 @@ pub fn startReceiving(context: ThreadContext) void {
     while (true) {
         const dataPacket = context.client.recv(recv_buffer[0..]) catch {
             context.pipe.meta.put(.net_exit) catch {
-                std.debug.print("Network read thread encountered a queue error while exiting.\n", .{});
+                log.err("Network read thread encountered a queue error while exiting.", .{});
             };
-            std.debug.print("Network read socket closed.\n", .{});
+            log.info("Network read socket closed.", .{});
             break;
         };
         // Our queue implementation copies the item we give it.
@@ -35,7 +36,7 @@ pub fn startReceiving(context: ThreadContext) void {
 
         const message = net.unwrap(.server, dataPacket) catch unreachable;
         handleMsg(context, message) catch |err| {
-            std.debug.print("Network read thread encountered an error: {}.\n", .{err});
+            log.err("Network read thread encountered an error: {}.", .{err});
             break;
         };
     }
@@ -45,7 +46,7 @@ fn handleMsg(context: ThreadContext, message: net.Packet(.server)) !void {
     const pipe = context.pipe;
     const err = MetaEvent{ .err = .unknown };
     errdefer pipe.meta.put(err) catch {
-        std.debug.print("Meta pipe failed to put network-thread error\n", .{});
+        log.err("Meta pipe failed to put network-thread error", .{});
     };
     switch (message.kind) {
         .action => {
