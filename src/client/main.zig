@@ -1,5 +1,5 @@
 const std = @import("std");
-const warn = std.debug.warn;
+const log = std.log.scoped(.main);
 
 const parser = @import("parser");
 
@@ -31,7 +31,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
         const leaked = gpa.deinit();
-        if (leaked) std.log.default.crit("memory leak detected while quitting\n", .{});
+        if (leaked) std.log.default.crit("memory leak detected while quitting", .{});
     }
     var allocator = &gpa.allocator;
 
@@ -105,7 +105,7 @@ pub fn main() !void {
     }
 
     var event: c.SDL_Event = undefined;
-    std.debug.print("running in local mode? {}\n", .{localOnly});
+    log.info("running in local mode? {}", .{localOnly});
     if (localOnly) {
         while (running) {
             renderImage(world.surface, world.image);
@@ -122,7 +122,7 @@ pub fn main() !void {
         defer {
             var should_wait = true;
             netPipe.out.put(.{ .disconnect = {} }) catch {
-                std.debug.print("unable to push exit flag to net-out-thread\n", .{});
+                log.warn("unable to push exit flag to net-out-thread", .{});
                 netConnection.deinit();
                 should_wait = false;
             };
@@ -153,7 +153,7 @@ pub fn main() !void {
                     }
                     if (world.peers.count() > 0 and fully_joined_room) {
                         netPipe.out.put(.{ .action = action }) catch {
-                            std.debug.print("Outgoing network pipe is full. Action ignored!\n", .{});
+                            log.warn("Outgoing network pipe is full. Action ignored!", .{});
                             continue;
                         };
                     }
@@ -167,7 +167,7 @@ pub fn main() !void {
             }
 
             while (netPipe.meta.take() catch null) |metaEvent| {
-                std.debug.print("meta event: {}\n", .{metaEvent});
+                log.debug("meta event: {}", .{metaEvent});
                 switch (metaEvent) {
                     .peer_entry => |userID| {
                         try world.peers.put(userID, users.User{});
@@ -183,7 +183,7 @@ pub fn main() !void {
                     },
                     // Handle whatever error occurred.
                     .err => |err| {
-                        std.debug.print("network error: {}\n", .{err});
+                        log.warn("network error: {}", .{err});
                         running = false;
                     },
                     // Our state has been queried. Add it to outgoing queue here.
@@ -207,7 +207,7 @@ pub fn main() !void {
             }
         }
     }
-    c.SDL_Log("Drawbridge raised.\n");
+    log.info("Drawbridge closing.", .{});
 }
 
 /// Copies and serializes this client's current transferable state into a buffer.
@@ -301,7 +301,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                     const color = pixels[pos];
                     return NetAction{ .color_change = color };
                 },
-                else => warn("key pressed: {}\n", .{key}),
+                else => log.info("key pressed: {}", .{key}),
             }
         },
         c.SDL_KEYUP => {},
@@ -341,7 +341,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             }
         },
         c.SDL_QUIT => {
-            warn("Attempting to quit\n", .{});
+            log.info("Attempting to quit", .{});
             running.* = false;
         },
         c.SDL_WINDOWEVENT => {
@@ -350,18 +350,18 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                 c.SDL_WINDOWEVENT_MOVED => {},
                 c.SDL_WINDOWEVENT_RESIZED => {}, // Subset of size_changed event. Does not get triggered if resize originated from SDL code.
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {
-                    warn("window resized {}x{}\n", .{ e.data1, e.data2 });
+                    log.debug("window resized {}x{}", .{ e.data1, e.data2 });
                     world.surface = sdl.display.initSurface(world.window) catch unreachable;
                     world.image.updateOnParentResize(world.surface, world.gui);
                     fullRender(world);
                 },
                 c.SDL_WINDOWEVENT_EXPOSED => {},
-                else => warn("window event {}\n", .{event.window.event}),
+                else => log.debug("window event {}", .{event.window.event}),
             }
         },
-        c.SDL_SYSWMEVENT => warn("syswm event {}\n", .{event}),
+        c.SDL_SYSWMEVENT => log.debug("syswm event {}", .{event}),
         c.SDL_TEXTINPUT => {},
-        else => warn("unexpected event # {} \n", .{event.type}),
+        else => log.warn("unexpected event # {} ", .{event.type}),
     }
     return null;
 }

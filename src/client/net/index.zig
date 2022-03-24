@@ -1,5 +1,5 @@
 const std = @import("std");
-const log = std.log.default;
+const log = std.log.scoped(.netmain);
 
 pub const mot = @import("mot"); // message oriented tcp
 pub const cereal = @import("cereal");
@@ -57,7 +57,7 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
 /// If the server sends a try_again packet, we will block while doing so.
 /// Returns true if we are the only member of a room, otherwise false.
 pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !bool {
-    log.debug("requesting to join room: \"{s}\"", .{room});
+    log.info("requesting to join room: \"{s}\"", .{room});
     var room_packet = try net.FromClient.wrap(allocator, .room_request, room);
     defer allocator.free(room_packet);
     try client.send(room_packet);
@@ -77,15 +77,15 @@ pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: 
     // Could return response here and have main function handle it.
     switch (response) {
         .room_full => {
-            log.debug("room not joined; room full", .{});
+            log.info("room not joined; room full", .{});
             return error.FullRoom;
         },
         .room_empty => {
-            log.debug("room joined; empty room", .{});
+            log.info("room joined; empty room", .{});
             return true;
         },
         .room_state_incoming => {
-            log.debug("room joined; state incoming", .{});
+            log.info("room joined; state incoming", .{});
             return false;
         },
         .try_again => {

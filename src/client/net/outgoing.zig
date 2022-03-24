@@ -1,4 +1,5 @@
 const std = @import("std");
+const log = std.log.scoped(.netout);
 
 const net = @import("net");
 const cereal = @import("cereal");
@@ -35,9 +36,9 @@ pub fn startSending(context: ThreadContext) void {
         switch (event) {
             .action => |action| {
                 packetBytes = serialize(context.allocator, .{ .action = action }) catch |err| {
-                    std.debug.print("error while serializing outgoing packet: {}\n", .{err});
+                    log.err("error while serializing outgoing packet: {}", .{err});
                     context.pipe.meta.put(.net_exit) catch {
-                        std.debug.print("Network write thread encountered a queue error while exiting due to memory allocation error.\n", .{});
+                        log.err("Network write thread encountered a queue error while exiting due to memory allocation error.", .{});
                     };
                     break;
                 };
@@ -48,18 +49,18 @@ pub fn startSending(context: ThreadContext) void {
             .disconnect => {
                 const exit_packet = [1]u8{@enumToInt(net.FromClient.Kind.disconnect)};
                 context.client.send(exit_packet[0..]) catch |err| {
-                    std.debug.print("Error while sending 'disconnect' packet to server ({})\n", .{err});
+                    log.err("Error while sending 'disconnect' packet to server ({})", .{err});
                 };
-                std.debug.print("Exiting network out thread\n", .{});
+                log.info("Exiting network out thread", .{});
                 break;
             },
         }
 
         defer context.allocator.free(packetBytes);
         context.client.send(packetBytes) catch |err| {
-            std.debug.print("error while sending packet: {}\n", .{err});
+            log.err("error while sending packet: {}", .{err});
             context.pipe.meta.put(.net_exit) catch {
-                std.debug.print("Network write thread encountered a queue error while exiting.\n", .{});
+                log.err("Network write thread encountered a queue error while exiting.", .{});
             };
             break;
         };
