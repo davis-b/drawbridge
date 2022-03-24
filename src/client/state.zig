@@ -3,21 +3,17 @@ const gui = @import("gui.zig");
 const Dot = @import("misc.zig").Dot;
 const Whiteboard = @import("whiteboard.zig").Whiteboard;
 const Tool = @import("tools.zig").Tool;
+const Peers = @import("users.zig").Peers;
 
 pub const World = struct {
     window: *c.SDL_Window,
     surface: *c.SDL_Surface,
-    image: *Whiteboard,
     gui: *gui.Surfaces,
-    mirrorDrawing: bool = false,
-    bg_color: u32 = 0x090909,
+    bgColor: u32 = 0x090909,
+    image: *Whiteboard,
+    peers: *Peers,
 };
 
-pub const User = struct {
-    drawing: bool = false,
-    size: u8 = 1,
-    color: u32,
-    tool: Tool = .pencil,
-    lastX: c_int = 0,
-    lastY: c_int = 0,
-};
+pub fn pack(allocator: *std.mem.Allocator, world: *World) []const u8 {
+    //
+}

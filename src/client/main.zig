@@ -1,24 +1,42 @@
 const std = @import("std");
 const warn = std.debug.warn;
-const assert = std.debug.assert;
 
-const misc = @import("misc.zig");
-const draw = @import("draw.zig");
-const NetAction = @import("net_actions.zig").Action;
-const gui = @import("gui.zig");
-const state = @import("state.zig");
-const tools = @import("tools.zig");
-const Whiteboard = @import("whiteboard.zig").Whiteboard;
+const parser = @import("parser");
 
 const c = @import("c.zig");
 const sdl = @import("sdl/index.zig");
+
+const net = @import("net/index.zig");
+const NetAction = @import("net/actions.zig").Action;
+const misc = @import("misc.zig");
+const draw = @import("draw.zig");
+const gui = @import("gui.zig");
+const state = @import("state.zig");
+const tools = @import("tools.zig");
+const users = @import("users.zig");
+const Whiteboard = @import("whiteboard.zig").Whiteboard;
 
 const changeColors = c.changeColors;
 const inverseColors = c.inverseColors;
 
 const maxDrawSize: c_int = std.math.maxInt(c_int);
 
+const Options = struct {
+    ip: ?[]const u8,
+    port: u16 = 8797,
+    room: []const u8 = "default",
+};
+
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer {
+        const leaked = gpa.deinit();
+        if (leaked) std.log.default.crit("memory leak detected while quitting\n", .{});
+    }
+    var allocator = &gpa.allocator;
+
+    const options = try parser.parseAdvanced(allocator, Options, .{ .argv = std.os.argv });
+
     try sdl.init();
     errdefer sdl.deinit();
     const cursor = try sdl.mouse.createSystemCursor(.crosshair);
@@ -26,48 +44,195 @@ pub fn main() !void {
     c.SDL_SetCursor(cursor);
     const window = try sdl.display.initWindow(1500, 1000);
     defer c.SDL_DestroyWindow(window);
-    const surface = try sdl.display.initSurface(window);
 
+    const surface = try sdl.display.initSurface(window);
     var gui_surfaces = try gui.init();
 
     const image_width = 1300;
     const image_height = 800;
     var whiteboard = try Whiteboard.init(surface, &gui_surfaces, image_width, image_height);
-    var bg_color: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
+    var bgColor: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
 
     var running = true;
-    var local_user = state.User{ .color = 0x777777 };
+    var local_user = users.User{};
+    var peers = users.Peers.init(allocator);
     var world = state.World{
         .window = window,
         .surface = surface,
         .image = &whiteboard,
         .gui = &gui_surfaces,
-        .bg_color = bg_color,
+        .bgColor = bgColor,
+        .peers = &peers,
     };
     defer c.SDL_FreeSurface(world.surface);
     defer world.image.deinit();
+    defer peers.deinit();
     world.image.updateOnParentResize(world.surface, world.gui);
     fullRender(&world);
     draw.thing(local_user.color, whiteboard.surface);
     draw.squares(whiteboard.surface);
 
+    // Set to true if network initialization fails.
+    var localOnly = false;
+    // All communication will happen through these queues.
+    var netPipe = net.Pipe{};
+    var netThreads: [2]*std.Thread = undefined;
+    var netConnection: net.mot.Connection = undefined;
+    // Will not be true until we join a room and either it has no state or we receive state from someone in that room.
+    var fully_joined_room = false;
+    if (options.ip) |ip| netSetupBlk: {
+        netConnection = net.init(allocator, ip, options.port) catch {
+            localOnly = true;
+            break :netSetupBlk;
+        };
+        errdefer netConnection.deinit();
+
+        // This can technically block indefinitely with the right circumstances. Perhaps we should give up after x seconds?
+        fully_joined_room = net.enter_room(allocator, &netConnection, options.room) catch |err| {
+            switch (err) {
+                error.FullRoom => {
+                    localOnly = true;
+                    break :netSetupBlk;
+                },
+                else => return err,
+            }
+        };
+        // This will spawn a new thread which will take care of low level networking stuff.
+        // If the networking thread finishes early, it will put a signal in the meta queue and wait for the queue to be emptied.
+        netThreads = try net.startThreads(allocator, &netPipe, &netConnection);
+    } else {
+        localOnly = true;
+    }
+
     var event: c.SDL_Event = undefined;
-    while (running) {
-        renderImage(world.surface, world.image);
-        sdl.display.updateSurface(world.window);
-        while (c.SDL_PollEvent(&event) == 1) {
-            const maybe_action = onEvent(event, &world, &local_user, &running);
-            if (maybe_action) |action| {
-                doAction(action, &local_user, &whiteboard);
-                // send action over network, or put into an outgoing queue that is sent by other thread
+    std.debug.print("running in local mode? {}\n", .{localOnly});
+    if (localOnly) {
+        while (running) {
+            renderImage(world.surface, world.image);
+            sdl.display.updateSurface(world.window);
+
+            while (c.SDL_PollEvent(&event) == 1) {
+                const maybe_action = onEvent(event, &world, &local_user, &running);
+                if (maybe_action) |action| {
+                    doAction(action, &local_user, &whiteboard);
+                }
+            }
+        }
+    } else {
+        defer {
+            var should_wait = true;
+            netPipe.out.put(.{ .disconnect = {} }) catch {
+                std.debug.print("unable to push exit flag to net-out-thread\n", .{});
+                netConnection.deinit();
+                should_wait = false;
+            };
+            if (should_wait) {
+                netThreads[0].wait(); // outgoing packets thread
+                // TODO reliably send an exit signal to this thread on multiple platforms.
+                // netThreads[1].wait(); // incoming packets thread
+                netConnection.deinit();
+            }
+        }
+        while (running) {
+            renderImage(world.surface, world.image);
+            sdl.display.updateSurface(world.window);
+
+            while (c.SDL_PollEvent(&event) == 1) {
+                const maybe_action = onEvent(event, &world, &local_user, &running);
+                if (maybe_action) |action| {
+                    // Until we have a preview of each client's cursor set up, save bandwith by not sending out unnecessary packets.
+                    // When we do send these packets, we could probably get away with sending only some of them each second.
+                    switch (action) {
+                        .cursor_move => {
+                            if (!local_user.drawing) {
+                                doAction(action, &local_user, &whiteboard);
+                                continue;
+                            }
+                        },
+                        else => {},
+                    }
+                    if (world.peers.count() > 0 and fully_joined_room) {
+                        netPipe.out.put(.{ .action = action }) catch {
+                            std.debug.print("Outgoing network pipe is full. Action ignored!\n", .{});
+                            continue;
+                        };
+                    }
+                    doAction(action, &local_user, &whiteboard);
+                }
+            }
+
+            while (netPipe.in.take() catch null) |netEvent| {
+                const user = world.peers.getPtr(netEvent.userID) orelse continue;
+                doAction(netEvent.action, user, &whiteboard);
+            }
+
+            while (netPipe.meta.take() catch null) |metaEvent| {
+                std.debug.print("meta event: {}\n", .{metaEvent});
+                switch (metaEvent) {
+                    .peer_entry => |userID| {
+                        try world.peers.put(userID, users.User{});
+                    },
+                    .peer_exit => |userID| {
+                        _ = world.peers.remove(userID);
+                    },
+                    // Disconnected from server.
+                    .net_exit => {
+                        // Can quit program, ask for new room, or enter local mode. Maybe local mode can also try reconnecting at will?
+                        // For now, we will simply exit the program.
+                        running = false;
+                    },
+                    // Handle whatever error occurred.
+                    .err => |err| {
+                        std.debug.print("network error: {}\n", .{err});
+                        running = false;
+                    },
+                    // Our state has been queried. Add it to outgoing queue here.
+                    .state_query => |our_id| {
+                        // We must copy the state here in this thread before any state changes.
+                        try netPipe.out.put(.{ .state = try copyState(allocator, &world, local_user, our_id) });
+                    },
+                    // We have been supplied with a new world state to copy.
+                    .state_set => |new_state| {
+                        fully_joined_room = true;
+                        defer allocator.free(new_state.users);
+                        defer allocator.free(new_state.image);
+                        for (new_state.users) |u| {
+                            try world.peers.put(u.id, u.user);
+                        }
+                        // NOTE this is where we might set image size, or maybe image size is set when entering a room
+                        world.image.deserialize(new_state.image);
+                        local_user.reset();
+                    },
+                }
             }
         }
     }
     c.SDL_Log("Drawbridge raised.\n");
 }
 
+/// Copies and serializes this client's current transferable state into a buffer.
+/// Caller owns returned memory.
+fn copyState(allocator: *std.mem.Allocator, world: *state.World, local_user: users.User, our_id: u8) ![]u8 {
+    const imageData = world.image.serialize();
+    var userList = try allocator.alloc(net.WorldState.UniqueUser, world.peers.count() + 1);
+    defer allocator.free(userList);
+    userList[0] = .{ .user = local_user, .id = our_id };
+    var iter = world.peers.iterator();
+    var index: usize = 1;
+    while (iter.next()) |entry| {
+        userList[index] = .{
+            .user = entry.value_ptr.*,
+            .id = entry.key_ptr.*,
+        };
+        index += 1;
+    }
+    const worldState = net.WorldState{ .image = imageData, .users = userList };
+
+    return try net.send.serialize(allocator, .{ .state = worldState });
+}
+
 fn fullRender(world: *state.World) void {
-    sdl.display.fillRect(world.surface, null, world.bg_color);
+    sdl.display.fillRect(world.surface, null, world.bgColor);
     renderImage(world.surface, world.image);
     gui.drawAll(world.gui);
     gui.blitAll(world.surface, world.gui);
@@ -115,7 +280,7 @@ fn adjustMousePos(image: *Whiteboard, x: *c_int, y: *c_int) void {
     y.* += image.crop_offset.y - image.render_area.y;
 }
 
-fn onEvent(event: c.SDL_Event, world: *state.World, user: *state.User, running: *bool) ?NetAction {
+fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, running: *bool) ?NetAction {
     switch (event.type) {
         c.SDL_KEYDOWN => {
             // Both enums have same values, we're simply changing for a more convenient naming scheme
@@ -123,7 +288,6 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *state.User, running: 
             switch (key) {
                 .Q => running.* = false,
                 .A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, @intCast(u64, std.time.milliTimestamp()))),
-                .M => world.mirrorDrawing = !world.mirrorDrawing,
 
                 .N_1 => world.image.modifyCropOffset(-20, null),
                 .N_2 => world.image.modifyCropOffset(20, null),
@@ -146,11 +310,6 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *state.User, running: 
             var x = event.motion.x;
             var y = event.motion.y;
             const in_image = coordinatesAreInImage(world.image.render_area, x, y);
-            // TODO
-            // Does this adjust within the frame of the SDL window?
-            // What we really want are the coordinates relative to the Whiteboard image itself.
-            // So that in the SDL window maybe we have 500, 500. Yet it's at the top of the draw area. Also our image is cropped 100 off the top.
-            // In that scenario we would want to derive 100 for y, as we're at the top of the image and it's cropped by 100.
             adjustMousePos(world.image, &x, &y);
             return NetAction{ .cursor_move = .{ .pos = .{ .x = x, .y = y }, .delta = .{ .x = event.motion.xrel, .y = event.motion.yrel } } };
         },
@@ -207,7 +366,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *state.User, running: 
     return null;
 }
 
-fn doAction(action: NetAction, user: *state.User, whiteboard: *Whiteboard) void {
+fn doAction(action: NetAction, user: *users.User, whiteboard: *Whiteboard) void {
     switch (action) {
         .tool_change => |new_tool| user.tool = new_tool,
         .tool_resize => |size| user.size = size,
@@ -219,6 +378,8 @@ fn doAction(action: NetAction, user: *state.User, whiteboard: *Whiteboard) void 
                 // TODO add a layer that allows temporary stuff like this to appear at all.
                 // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
                 // Currently the image blits on top of this and removes it.
+                // or do something like this:
+                // tools.pencil(move.pos.x, move.pos.y, 0, 0, user, world.surface);
             }
         },
         .mouse_press => |click| {

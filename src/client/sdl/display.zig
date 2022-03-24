@@ -1,5 +1,5 @@
 const misc = @import("misc.zig");
-const c = @import("c");
+const c = @import("client").c;
 
 // For some reason, this isn't parsed automatically. According to SDL docs, the
 // surface pointer returned is optional!
@@ -9,7 +9,7 @@ const SDL_WINDOWPOS_UNDEFINED = @bitCast(c_int, c.SDL_WINDOWPOS_UNDEFINED_MASK);
 
 pub fn initWindow(width: c_int, height: c_int) !*c.SDL_Window {
     const window: *c.SDL_Window = c.SDL_CreateWindow(
-        "Draw-bridge",
+        "Drawbridge",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         width,

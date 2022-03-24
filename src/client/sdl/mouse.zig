@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("c");
+const c = @import("client").c;
 
 extern fn SDL_CreateSystemCursor(c_int) *c.SDL_Cursor;
 const Cursor = enum(c_int) {
