@@ -10,7 +10,7 @@ const net = @import("net/index.zig");
 const NetAction = @import("net/actions.zig").Action;
 const misc = @import("misc.zig");
 const draw = @import("draw.zig");
-const gui = @import("gui.zig");
+const gui = @import("gui/index.zig");
 const state = @import("state.zig");
 const tools = @import("tools.zig");
 const users = @import("users.zig");
@@ -46,7 +46,7 @@ pub fn main() !void {
     defer c.SDL_DestroyWindow(window);
 
     const surface = try sdl.display.initSurface(window);
-    var gui_surfaces = try gui.Init.all();
+    var gui_surfaces = try gui.init();
 
     const image_width = 1300;
     const image_height = 800;
@@ -320,7 +320,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
                 return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
             } else {
-                gui.handleButtonPress(world.surface, world.gui, event.button.x, event.button.y);
+                gui.events.handleButtonPress(world.surface, world.gui, event.button.x, event.button.y);
             }
         },
         c.SDL_MOUSEBUTTONUP => {

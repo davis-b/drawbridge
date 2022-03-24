@@ -1,7 +1,7 @@
 const math = @import("std").math;
 
 const c = @import("c.zig");
-const gui = @import("gui.zig");
+const gui = @import("gui/index.zig");
 const sdl = @import("sdl/index.zig");
 const misc = @import("misc.zig");
 
