@@ -14,9 +14,9 @@ pub const Surfaces = struct {
 };
 
 const Dimensions = struct {
-    const header = .{ .w = 150, .h = 20 };
+    const header = .{ .w = 100, .h = 20 };
     const footer = .{ .w = 150, .h = 20 };
-    const left = .{ .w = 50, .h = 200 };
+    const left = .{ .w = 50, .h = 400 };
     const right = .{ .w = 50, .h = 200 };
 };
 
@@ -47,36 +47,38 @@ pub const Init = struct {
     }
 };
 
-pub fn drawHeader(surface: *Surface, a: bool, b: bool) void {
-    const bg_color = 0xff0000;
-    fillRect(surface, &c.SDL_Rect{ .x = 0, .y = 0, .w = 100, .h = 20 }, bg_color);
-    if (a) {
-        fillRect(surface, &c.SDL_Rect{ .x = 25, .y = 0, .w = 25, .h = 20 }, 0x00ff00);
+pub const Draw = struct {
+    pub fn header(surface: *Surface, a: bool, b: bool) void {
+        const bg_color = 0xff0000;
+        fillRect(surface, &c.SDL_Rect{ .x = 0, .y = 0, .w = Dimensions.header.w, .h = Dimensions.header.h }, bg_color);
+        if (a) {
+            fillRect(surface, &c.SDL_Rect{ .x = 25, .y = 0, .w = 25, .h = 20 }, 0x00ff00);
+        }
+        if (b) {
+            fillRect(surface, &c.SDL_Rect{ .x = 50, .y = 0, .w = 25, .h = 20 }, 0x0000ff);
+        }
     }
-    if (b) {
-        fillRect(surface, &c.SDL_Rect{ .x = 50, .y = 0, .w = 25, .h = 20 }, 0x0000ff);
+
+    pub fn footer(surface: *Surface) void {
+        fillRect(surface, null, 0xff0000);
     }
-}
 
-pub fn drawFooter(surface: *Surface) void {
-    fillRect(surface, null, 0xff0000);
-}
+    pub fn left(surface: *Surface) void {
+        fillRect(surface, null, 0x00ff00);
+    }
 
-pub fn drawLeft(surface: *Surface) void {
-    fillRect(surface, null, 0x00ff00);
-}
+    pub fn right(surface: *Surface) void {
+        fillRect(surface, null, 0x0000ff);
+    }
 
-pub fn drawRight(surface: *Surface) void {
-    fillRect(surface, null, 0x0000ff);
-}
-
-/// Draws all GUI elements
-pub fn drawAll(gui_s: *Surfaces) void {
-    drawHeader(gui_s.header, true, true);
-    drawFooter(gui_s.footer);
-    drawLeft(gui_s.left);
-    drawRight(gui_s.right);
-}
+    /// Draws all GUI elements
+    pub fn all(gui_s: *Surfaces) void {
+        header(gui_s.header, true, true);
+        footer(gui_s.footer);
+        left(gui_s.left);
+        right(gui_s.right);
+    }
+};
 
 /// Blits all GUI elements to dst surface
 pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
@@ -104,6 +106,7 @@ pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, x: c_int, y: c_int)
     // header
     if (y <= s.header.h) {
         handleHeaderPress(parent, s.header, x, y);
+        log.debug("header {}x{}", .{ x, y });
     }
     // footer
     else if (y >= parent.h - s.footer.h) {

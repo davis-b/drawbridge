@@ -234,7 +234,7 @@ fn copyState(allocator: *std.mem.Allocator, world: *state.World, local_user: use
 fn fullRender(world: *state.World) void {
     sdl.display.fillRect(world.surface, null, world.bgColor);
     renderImage(world.surface, world.image);
-    gui.drawAll(world.gui);
+    gui.Draw.all(world.gui);
     gui.blitAll(world.surface, world.gui);
 }
 
