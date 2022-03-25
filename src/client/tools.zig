@@ -7,6 +7,7 @@ pub const Tool = enum(u8) {
     pencil,
     eraser,
     bucket,
+    color_picker,
 };
 
 pub fn pencil(x: c_int, y: c_int, deltaX: c_int, deltaY: c_int, user: *User, surface: *c.SDL_Surface) void {
