@@ -8,6 +8,10 @@ const Surfaces = @import("index.zig").Surfaces;
 const Dimensions = @import("index.zig").Dimensions;
 const draw = @import("draw.zig");
 
+pub const Event = union(enum) {
+    tool_change: Tool,
+};
+
 /// Takes a parent surface and our GUI surfaces, as well as the position of the click.
 /// This function handles button presses to any GUI element.
 /// Therefore, to get the x/y positions of a click inside a specific element,
@@ -15,7 +19,7 @@ const draw = @import("draw.zig");
 /// We layer our button handling to match the visual layering, where the last blitted item will appear above lower ones.
 /// For instance, the left side bar starts at y0, however it is not visible until y + (header height), therefore
 /// clicks should adjust their y position by the header's height.
-pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, x: c_int, y: c_int) void {
+pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, x: c_int, y: c_int) ?Event {
     // header
     if (y <= s.header.h) {
         handleHeaderPress(parent, s.header, x, y);
@@ -29,14 +33,17 @@ pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, x: c_int, y: c_int)
     // left sidebar
     else if (x <= s.left.w) {
         const new_y = y - s.header.h;
-        const tool = whichToolPressed(new_y);
-        log.debug("{}", .{tool});
+        if (whichToolPressed(new_y)) |tool| {
+            log.debug("switching to {}", .{tool});
+            return Event{ .tool_change = tool };
+        }
     }
     // right sidebar
     else if (x >= parent.w - s.right.w) {
         const new_x = x - (parent.w - s.right.w);
         log.debug("right {}x{}", .{ new_x, y });
     }
+    return null;
 }
 
 fn handleHeaderPress(parent: *sdl.Surface, header: *sdl.Surface, x: c_int, y: c_int) void {

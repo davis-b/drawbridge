@@ -152,6 +152,7 @@ pub fn main() !void {
                         else => {},
                     }
                     if (world.peers.count() > 0 and fully_joined_room) {
+                        // TODO we should not be sending out draw packets from a cursor clicking on surfaces outside the drawing area.
                         netPipe.out.put(.{ .action = action }) catch {
                             log.warn("Outgoing network pipe is full. Action ignored!", .{});
                             continue;
@@ -320,7 +321,14 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
                 return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
             } else {
-                gui.events.handleButtonPress(world.surface, world.gui, event.button.x, event.button.y);
+                const guiEvent = gui.events.handleButtonPress(world.surface, world.gui, event.button.x, event.button.y);
+                if (guiEvent) |ge| {
+                    switch (ge) {
+                        .tool_change => |tool| {
+                            return NetAction{ .tool_change = tool };
+                        },
+                    }
+                }
             }
         },
         c.SDL_MOUSEBUTTONUP => {
@@ -368,7 +376,9 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
 
 fn doAction(action: NetAction, user: *users.User, whiteboard: *Whiteboard) void {
     switch (action) {
-        .tool_change => |new_tool| user.tool = new_tool,
+        .tool_change => |new_tool| {
+            user.tool = new_tool;
+        },
         .tool_resize => |size| user.size = size,
         .cursor_move => |move| {
             if (user.drawing) {
