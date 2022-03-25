@@ -3,7 +3,7 @@ const log = @import("std").log.scoped(.gui);
 const c = @import("../c.zig");
 const sdl = @import("../sdl/index.zig");
 
-pub const Draw = @import("draw.zig").Draw;
+pub const draw = @import("draw.zig");
 pub const events = @import("events.zig");
 
 pub const Surface = sdl.Surface;
@@ -12,21 +12,26 @@ pub const Surfaces = struct {
     footer: *Surface,
     left: *Surface,
     right: *Surface,
+    images: draw.Images,
 };
 
 pub const Dimensions = struct {
     pub const header = .{ .w = 100, .h = 20 };
     pub const footer = .{ .w = 150, .h = 20 };
-    pub const left = .{ .w = 50, .h = 400 };
+    pub const left = .{ .w = 40, .h = 400 };
     pub const right = .{ .w = 50, .h = 200 };
 };
 
 pub fn init() !Surfaces {
+    errdefer |err| {
+        log.err("gui init: {} -- {s}", .{ err, sdl.lastErr() });
+    }
     var s: Surfaces = undefined;
     s.header = try Init.header();
     s.footer = try Init.footer();
     s.left = try Init.left();
     s.right = try Init.right();
+    s.images = try draw.Images.init();
     return s;
 }
 
