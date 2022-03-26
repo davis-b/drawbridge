@@ -2,6 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.gui);
 
 const Tool = @import("../tools.zig").Tool;
+const Peers = @import("../users.zig").Peers;
 const c = @import("../c.zig");
 const sdl = @import("../sdl/index.zig");
 const fillRect = sdl.display.fillRect;
@@ -33,6 +34,7 @@ pub const Draw = struct {
         fillBg(surface);
     }
 
+    /// Draw the left GUI bar, which contains tool icons.
     fn left(surface: *Surface, images: Images) void {
         fillBg(surface);
 
@@ -43,16 +45,26 @@ pub const Draw = struct {
         }
     }
 
-    fn right(surface: *Surface) void {
+    /// Draw the right GUI bar, which contains peer information.
+    fn right(surface: *Surface, images: Images, peers: *Peers) void {
         fillBg(surface);
+
+        var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = 0, .h = 0 };
+        var iter = peers.iterator();
+        while (iter.next()) |peer| {
+            const toolIndex = @enumToInt(peer.value_ptr.tool);
+            sdl.display.blit(images.tools[toolIndex], null, surface, &paintOffsets);
+            log.debug("x {}", .{peer.key_ptr.*});
+            paintOffsets.y += toolHeight + toolGap;
+        }
     }
 
     /// Draws all GUI elements
-    pub fn all(gui_s: *Surfaces) void {
+    pub fn all(gui_s: *Surfaces, peers: *Peers) void {
         header(gui_s.header, true, true);
         footer(gui_s.footer);
         left(gui_s.left, gui_s.images);
-        right(gui_s.right);
+        right(gui_s.right, gui_s.images, peers);
     }
 };
 
