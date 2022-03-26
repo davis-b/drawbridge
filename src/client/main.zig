@@ -193,11 +193,16 @@ pub fn main() !void {
                         try netPipe.out.put(.{ .state = try copyState(allocator, &world, local_user, our_id) });
                     },
                     // We have been supplied with a new world state to copy.
-                    .state_set => |new_state| {
+                    .state_set => |message| {
                         fully_joined_room = true;
+                        var new_state = message.state;
                         defer allocator.free(new_state.users);
                         defer allocator.free(new_state.image);
                         for (new_state.users) |u| {
+                            // The state sender receives an update that we have entered the room before it sends us their state.
+                            // Thus, we are included in their user list.
+                            // We don't want to be in our own user list though.
+                            if (u.id == message.our_id) continue;
                             try world.peers.put(u.id, u.user);
                         }
                         // NOTE this is where we might set image size, or maybe image size is set when entering a room

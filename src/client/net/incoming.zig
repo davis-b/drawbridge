@@ -72,8 +72,9 @@ fn handleMsg(context: ThreadContext, message: net.Packet(.server)) !void {
         // Set the state of this client.
         .state_set => {
             // const world = std.mem.bytesToValue(packet.WorldState, @ptrCast(*const [@sizeOf(packet.WorldState)]u8, message.data));
-            const world = try cereal.deserialize(context.allocator, WorldState, message.data);
-            try pipe.meta.put(MetaEvent{ .state_set = world });
+            const our_id = message.data[0];
+            const world = try cereal.deserialize(context.allocator, WorldState, message.data[1..]);
+            try pipe.meta.put(MetaEvent{ .state_set = .{ .state = world, .our_id = our_id } });
         },
         .response => {
             switch (try std.meta.intToEnum(net.FromServer.Response, message.data[0])) {
