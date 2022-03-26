@@ -7,7 +7,7 @@ pub const Event = union(enum) {
     peer_entry: u8,
     peer_exit: u8,
     state_query: u8, // our id, so we can return a user list that the new peer can properly use.
-    state_set: WorldState,
+    state_set: struct { state: WorldState, our_id: u8 },
     err: MetaError,
 };
 

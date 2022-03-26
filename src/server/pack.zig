@@ -9,26 +9,33 @@ const ClientIdT = @import("client.zig").ClientIdT;
 const management = @import("management.zig");
 
 /// Takes a draw_action packet to forward.
-/// Prepends the sender's ID and the packet type.
+/// Prepends the packet type and the sender's ID.
 /// Caller owns the memory.
 pub fn pack_action(allocator: *std.mem.Allocator, sender: ClientIdT, packet: []const u8) ![]u8 {
+    var new = try pack_with_id(allocator, sender, packet);
+    new[0] = @enumToInt(PacketKind.action);
+    return new;
+}
+
+/// Takes a world_update packet to forward.
+/// Prepends the packet type and the recipient's ID.
+/// Caller owns the memory.
+pub fn pack_world_update(allocator: *std.mem.Allocator, recipient: ClientIdT, packet: []const u8) ![]u8 {
+    var new = try pack_with_id(allocator, recipient, packet);
+    new[0] = @enumToInt(PacketKind.state_set);
+    return new;
+}
+
+/// Copies and grows a packet to allow for 2 additional bytes of data.
+/// Leaves the PacketKind field blank, fills in the 'client' field.
+fn pack_with_id(allocator: *std.mem.Allocator, client: ClientIdT, packet: []const u8) ![]u8 {
     // If this changes, we'll have to modify our prepending to account for a larger client ID size.
     comptime std.debug.assert(ClientIdT == u8);
 
     var new = try allocator.alloc(u8, packet.len + 2);
     std.mem.copy(u8, new[2..], packet);
-    new[0] = @enumToInt(PacketKind.action);
-    new[1] = sender;
-    return new;
-}
-
-/// Takes a world_update packet to forward.
-/// Prepends the packet type.
-/// Caller owns the memory.
-pub fn pack_world_update(allocator: *std.mem.Allocator, packet: []const u8) ![]u8 {
-    var new = try allocator.alloc(u8, packet.len + 1);
-    std.mem.copy(u8, new[1..], packet);
-    new[0] = @enumToInt(PacketKind.state_set);
+    new[0] = undefined; // should be replaced by the calling function
+    new[1] = client;
     return new;
 }
 

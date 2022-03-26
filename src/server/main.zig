@@ -217,7 +217,7 @@ fn recv_world_state(allocator: *std.mem.Allocator, sender: *Client, packet: []co
         }
     };
 
-    const new_packet = try pack.pack_world_update(allocator, packet);
+    const new_packet = try pack.pack_world_update(allocator, recipient.id, packet);
     defer allocator.free(new_packet);
 
     if (recipient.packet_buffer) |*packets| {
