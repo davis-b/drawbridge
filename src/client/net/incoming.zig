@@ -50,7 +50,11 @@ fn handleMsg(context: ThreadContext, message: net.Packet(.server)) !void {
     };
     switch (message.kind) {
         .action => {
-            const action = cereal.deserialize(null, PackagedAction, message.data) catch unreachable; // no allocation, can't fail.
+            const action = cereal.deserialize(null, PackagedAction, message.data) catch |cerial_err| {
+                // It is safe to use the 0th index of message.data in the case of a malicious peer, as the server will have filled out that byte.
+                log.err("Error deserializing message from Peer #{}. {}", .{ message.data[0], cerial_err });
+                return;
+            };
             try pipe.in.put(action);
         },
         // A new peer has been detected. They joined our room.
