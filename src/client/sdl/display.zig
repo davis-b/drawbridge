@@ -54,6 +54,11 @@ pub fn blit(src: *c.SDL_Surface, src_rect: ?*c.SDL_Rect, dst: *c.SDL_Surface, ds
     if (result != 0) @panic("Error blitting surface!\n");
 }
 
+pub fn blitScaled(src: *c.SDL_Surface, src_rect: ?*c.SDL_Rect, dst: *c.SDL_Surface, dst_rect: ?*c.SDL_Rect) void {
+    const result = c.SDL_BlitScaled(src, src_rect, dst, dst_rect);
+    if (result != 0) @panic("Error blitting surface!\n");
+}
+
 pub fn fillRect(surface: *c.SDL_Surface, rect: ?*const c.SDL_Rect, color: u32) void {
     const result = c.SDL_FillRect(surface, rect, color);
     if (result != 0) @panic("Error filling rectangle!\n");

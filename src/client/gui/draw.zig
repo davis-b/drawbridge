@@ -18,6 +18,10 @@ const toolWidth = 30;
 pub const toolGap = 5;
 pub const toolStartY = 30;
 
+const peerToolHeight = 20;
+const peerToolWidth = 20;
+const peerToolGap = 3;
+
 pub const Draw = struct {
     fn header(surface: *Surface, a: bool, b: bool) void {
         const bg_color = 0xff0000;
@@ -49,13 +53,12 @@ pub const Draw = struct {
     pub fn right(surface: *Surface, images: Images, peers: *Peers) void {
         fillBg(surface);
 
-        var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = 0, .h = 0 };
+        var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = peerToolWidth, .h = peerToolHeight };
         var iter = peers.iterator();
         while (iter.next()) |peer| {
             const toolIndex = @enumToInt(peer.value_ptr.tool);
-            sdl.display.blit(images.tools[toolIndex], null, surface, &paintOffsets);
-            log.debug("x {}", .{peer.key_ptr.*});
-            paintOffsets.y += toolHeight + toolGap;
+            sdl.display.blitScaled(images.tools[toolIndex], null, surface, &paintOffsets);
+            paintOffsets.y += peerToolHeight + peerToolGap;
         }
     }
 
