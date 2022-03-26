@@ -52,12 +52,25 @@ pub const Draw = struct {
     /// Draw the right GUI bar, which contains peer information.
     pub fn right(surface: *Surface, images: Images, peers: *Peers) void {
         fillBg(surface);
+        const active = 0x349847;
+        const idle = 0x777734;
+        const inactive = 0x982734;
 
         var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = peerToolWidth, .h = peerToolHeight };
         var iter = peers.iterator();
-        while (iter.next()) |peer| {
-            const toolIndex = @enumToInt(peer.value_ptr.tool);
+        const time = std.time.milliTimestamp();
+        // Display the peer's tool, as well as their activity status (active, idle, inactive)
+        while (iter.next()) |peerPtr| {
+            const peer = peerPtr.value_ptr;
+            const toolIndex = @enumToInt(peer.tool);
             sdl.display.blitScaled(images.tools[toolIndex], null, surface, &paintOffsets);
+            const rect = c.SDL_Rect{ .x = 3, .y = paintOffsets.y, .w = 3, .h = 3 };
+            const color: u32 = blk: {
+                if (peer.lastActive + 1500 > time) break :blk active;
+                if (peer.lastActive + 10000 > time) break :blk idle;
+                break :blk inactive;
+            };
+            sdl.display.fillRect(surface, &rect, color);
             paintOffsets.y += peerToolHeight + peerToolGap;
         }
     }

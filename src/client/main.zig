@@ -136,6 +136,7 @@ pub fn main() !void {
         while (running) {
             renderImage(world.surface, world.image);
             sdl.display.updateSurface(world.window);
+            gui.updatePeers(&world);
 
             while (c.SDL_PollEvent(&event) == 1) {
                 const maybe_action = onEvent(event, &world, &local_user, &running);
@@ -167,6 +168,7 @@ pub fn main() !void {
                 doAction(netEvent.action, user, &whiteboard);
                 // Should this belong in doAction()?
                 if (netEvent.action == .tool_change) gui.updatePeers(&world);
+                user.lastActive = std.time.milliTimestamp();
             }
 
             while (netPipe.meta.take() catch null) |metaEvent| {
@@ -228,6 +230,7 @@ fn copyState(allocator: *std.mem.Allocator, world: *state.World, local_user: use
     var userList = try allocator.alloc(net.WorldState.UniqueUser, world.peers.count() + 1);
     defer allocator.free(userList);
     userList[0] = .{ .user = local_user, .id = our_id };
+    userList[0].user.lastActive = std.time.milliTimestamp();
     var iter = world.peers.iterator();
     var index: usize = 1;
     while (iter.next()) |entry| {
