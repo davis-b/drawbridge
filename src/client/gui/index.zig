@@ -20,7 +20,7 @@ pub const Dimensions = struct {
     pub const header = .{ .w = 100, .h = 20 };
     pub const footer = .{ .w = 150, .h = 20 };
     pub const left = .{ .w = 40, .h = 400 };
-    pub const right = .{ .w = 50, .h = 200 };
+    pub const right = .{ .w = 30, .h = 200 };
 };
 
 pub fn init() !Surfaces {
