@@ -165,6 +165,8 @@ pub fn main() !void {
             while (netPipe.in.take() catch null) |netEvent| {
                 const user = world.peers.getPtr(netEvent.userID) orelse continue;
                 doAction(netEvent.action, user, &whiteboard);
+                // Should this belong in doAction()?
+                if (netEvent.action == .tool_change) gui.updatePeers(&world);
             }
 
             while (netPipe.meta.take() catch null) |metaEvent| {
@@ -172,9 +174,11 @@ pub fn main() !void {
                 switch (metaEvent) {
                     .peer_entry => |userID| {
                         try world.peers.put(userID, users.User{});
+                        gui.updatePeers(&world);
                     },
                     .peer_exit => |userID| {
                         _ = world.peers.remove(userID);
+                        gui.updatePeers(&world);
                     },
                     // Disconnected from server.
                     .net_exit => {
@@ -208,6 +212,7 @@ pub fn main() !void {
                         // NOTE this is where we might set image size, or maybe image size is set when entering a room
                         world.image.deserialize(new_state.image);
                         local_user.reset();
+                        gui.updatePeers(&world);
                     },
                 }
             }

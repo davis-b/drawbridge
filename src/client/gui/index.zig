@@ -1,5 +1,6 @@
 const log = @import("std").log.scoped(.gui);
 
+const World = @import("../state.zig").World;
 const c = @import("../c.zig");
 const sdl = @import("../sdl/index.zig");
 
@@ -35,6 +36,11 @@ pub fn init() !Surfaces {
     return s;
 }
 
+pub fn updatePeers(world: *World) void {
+    draw.Draw.right(world.gui.right, world.gui.images, world.peers);
+    blitRight(world.surface, world.gui);
+}
+
 const Init = struct {
     fn header() !*Surface {
         return try sdl.display.initRgbSurface(0, Dimensions.header.w, Dimensions.header.h, 24);
@@ -64,13 +70,15 @@ pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
         var r = sdl.Rect{ .x = 0, .y = gui_s.header.h, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.left, null, dst, &r);
     }
-    {
-        var r = sdl.Rect{ .x = dst.w - gui_s.right.w, .y = gui_s.header.h, .h = 0, .w = 0 };
-        sdl.display.blit(gui_s.right, null, dst, &r);
-    }
+    blitRight(dst, gui_s);
     {
         const mid = @divFloor((dst.w - gui_s.footer.w), 2);
         var r = sdl.Rect{ .x = mid, .y = dst.h - gui_s.footer.h, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.footer, null, dst, &r);
     }
+}
+
+fn blitRight(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
+    var r = sdl.Rect{ .x = dst.w - gui_s.right.w, .y = gui_s.header.h, .h = 0, .w = 0 };
+    sdl.display.blit(gui_s.right, null, dst, &r);
 }

@@ -46,7 +46,7 @@ pub const Draw = struct {
     }
 
     /// Draw the right GUI bar, which contains peer information.
-    fn right(surface: *Surface, images: Images, peers: *Peers) void {
+    pub fn right(surface: *Surface, images: Images, peers: *Peers) void {
         fillBg(surface);
 
         var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = 0, .h = 0 };
