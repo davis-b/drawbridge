@@ -20,7 +20,9 @@ pub const toolStartY = 30;
 
 const peerToolHeight = 20;
 const peerToolWidth = 20;
-const peerToolGap = 3;
+const peerToolColorGap = 3;
+const peerToolColorHeight = 3;
+const peerToolGap = peerToolColorGap + peerToolColorHeight + 7;
 
 pub const Draw = struct {
     fn header(surface: *Surface, a: bool, b: bool) void {
@@ -64,13 +66,16 @@ pub const Draw = struct {
             const peer = peerPtr.value_ptr;
             const toolIndex = @enumToInt(peer.tool);
             sdl.display.blitScaled(images.tools[toolIndex], null, surface, &paintOffsets);
-            const rect = c.SDL_Rect{ .x = 3, .y = paintOffsets.y, .w = 3, .h = 3 };
             const color: u32 = blk: {
                 if (peer.lastActive + 1500 > time) break :blk active;
                 if (peer.lastActive + 10000 > time) break :blk idle;
                 break :blk inactive;
             };
-            sdl.display.fillRect(surface, &rect, color);
+            sdl.display.fillRect(surface, &c.SDL_Rect{ .x = 3, .y = paintOffsets.y, .w = 3, .h = 3 }, color);
+            // Vertical line
+            // sdl.display.fillRect(surface, &c.SDL_Rect{ .x = 3, .y = paintOffsets.y, .w = 2, .h = peerToolHeight }, peer.color);
+            // Horizontal line
+            sdl.display.fillRect(surface, &c.SDL_Rect{ .x = 3, .y = paintOffsets.y + peerToolHeight + peerToolColorGap, .w = peerToolWidth, .h = peerToolColorHeight }, peer.color);
             paintOffsets.y += peerToolHeight + peerToolGap;
         }
     }
