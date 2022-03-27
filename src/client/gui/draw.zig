@@ -71,10 +71,11 @@ pub const Draw = struct {
                 if (peer.lastActive + 10000 > time) break :blk idle;
                 break :blk inactive;
             };
+            // Square displaying activity status of peer.
             sdl.display.fillRect(surface, &c.SDL_Rect{ .x = 3, .y = paintOffsets.y, .w = 3, .h = 3 }, color);
-            // Vertical line
+            // Vertical line displaying current color of peer.
             // sdl.display.fillRect(surface, &c.SDL_Rect{ .x = 3, .y = paintOffsets.y, .w = 2, .h = peerToolHeight }, peer.color);
-            // Horizontal line
+            // Horizontal line displaying current color of peer.
             sdl.display.fillRect(surface, &c.SDL_Rect{ .x = 3, .y = paintOffsets.y + peerToolHeight + peerToolColorGap, .w = peerToolWidth, .h = peerToolColorHeight }, peer.color);
             paintOffsets.y += peerToolHeight + peerToolGap;
         }
