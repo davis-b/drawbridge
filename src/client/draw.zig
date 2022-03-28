@@ -1,6 +1,8 @@
 const std = @import("std");
+const log = std.log.scoped(.draw);
 const math = std.math;
 const c = @import("c.zig");
+const Dot = @import("misc.zig").Dot;
 
 pub var Rectangle: c.SDL_Rect = c.SDL_Rect{
     .x = 0,
@@ -14,6 +16,39 @@ pub fn putRectangle(x: c_int, y: c_int, color: u32, surface: *c.SDL_Surface) voi
     Rectangle.x = x;
     Rectangle.y = y;
     _ = c.SDL_FillRect(surface, &Rectangle, color);
+}
+
+fn putARectangle(x: c_int, y: c_int, color: u32, rect: *c.SDL_Rect, surface: *c.SDL_Surface) void {
+    rect.x = x;
+    rect.y = y;
+    _ = c.SDL_FillRect(surface, rect, color);
+}
+
+/// Draw a rectangle with edges at 'start' and 'end'
+pub fn rectangle(start: Dot, end: Dot, color: u32, thickness: u16, surface: *c.SDL_Surface) void {
+    var rect: c.SDL_Rect = c.SDL_Rect{ .x = 0, .y = 0, .h = thickness, .w = thickness };
+    const deltaX = math.absInt(start.x - end.x) catch |err| blk: {
+        log.err("draw.rectangle() absInt error: {}", .{err});
+        break :blk 1;
+    };
+    const deltaY = math.absInt(start.y - end.y) catch |err| blk: {
+        log.err("draw.rectangle() absInt error: {}", .{err});
+        break :blk 1;
+    };
+
+    // horizontal lines
+    rect.w = deltaX;
+    putARectangle(start.x, start.y, color, &rect, surface);
+    putARectangle(start.x, end.y, color, &rect, surface);
+
+    // vertical lines
+    rect.w = thickness;
+    rect.h = deltaY;
+    putARectangle(end.x, start.y, color, &rect, surface);
+    putARectangle(start.x, start.y, color, &rect, surface);
+
+    rect.h = thickness;
+    putARectangle(end.x, end.y, color, &rect, surface);
 }
 
 pub fn circle(window: anytype, x: u64, y: u64, radius: u32) void {
@@ -110,13 +145,13 @@ pub fn squares(surface: *c.SDL_Surface) void {
         0x00ff00,
         0x0000ff,
     };
-    var rectangle = c.SDL_Rect{ .x = 0, .y = 0, .h = 0, .w = 0 };
+    var rect = c.SDL_Rect{ .x = 0, .y = 0, .h = 0, .w = 0 };
     for (colors) |color| {
-        rectangle.x = x;
-        rectangle.y = y;
-        rectangle.w = size;
-        rectangle.h = size;
-        _ = c.SDL_FillRect(surface, &rectangle, color);
+        rect.x = x;
+        rect.y = y;
+        rect.w = size;
+        rect.h = size;
+        _ = c.SDL_FillRect(surface, &rect, color);
         x += step;
     }
 }

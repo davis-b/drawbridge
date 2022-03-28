@@ -1,5 +1,6 @@
 const draw = @import("draw.zig");
 const User = @import("users.zig").User;
+const Dot = @import("misc.zig").Dot;
 
 const c = @import("c.zig");
 
@@ -21,6 +22,10 @@ pub fn eraser(x: c_int, y: c_int, deltaX: c_int, deltaY: c_int, color: u32, surf
 }
 
 pub fn bucket(x: c_int, y: c_int, color: u32, surface: *c.SDL_Surface) void {}
+
+pub fn rectangle(start: Dot, end: Dot, user: *User, surface: *c.SDL_Surface) void {
+    draw.rectangle(start, end, user.color, user.size, surface);
+}
 
 // fn mirror_pencil() void {
 //     const halfwidth = @divFloor(world.image.surface.w, 2);
