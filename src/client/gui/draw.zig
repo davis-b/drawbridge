@@ -4,11 +4,12 @@ const log = std.log.scoped(.gui);
 const Tool = @import("../tools.zig").Tool;
 const User = @import("../users.zig").User;
 const Peers = @import("../users.zig").Peers;
+const surface_draw = @import("../draw.zig");
 const c = @import("../c.zig");
 const sdl = @import("../sdl/index.zig");
 const fillRect = sdl.display.fillRect;
+const Surface = sdl.Surface;
 
-const Surface = @import("index.zig").Surface;
 const Surfaces = @import("index.zig").Surfaces;
 const Dimensions = @import("index.zig").Dimensions;
 
@@ -52,15 +53,7 @@ pub const Draw = struct {
             sdl.display.blit(image, null, surface, &paintOffsets);
             if (@enumToInt(activeTool) == index) {
                 // draw box around selected tool
-
-                // Top horizontal bar
-                fillRect(surface, &c.SDL_Rect{ .x = 5, .y = paintOffsets.y, .w = toolWidth, .h = 3 }, 0x444444);
-                // Bottom horizontal bar
-                fillRect(surface, &c.SDL_Rect{ .x = 5, .y = paintOffsets.y + toolHeight, .w = toolWidth, .h = 3 }, 0x444444);
-                // Left vertical bar
-                fillRect(surface, &c.SDL_Rect{ .x = 5, .y = paintOffsets.y, .w = 3, .h = toolHeight }, 0x444444);
-                // Right vertical bar
-                fillRect(surface, &c.SDL_Rect{ .x = toolWidth + 3, .y = paintOffsets.y, .w = 3, .h = toolHeight }, 0x444444);
+                surface_draw.rectangle(.{ .x = 3, .y = paintOffsets.y }, .{ .x = toolWidth + 3, .y = paintOffsets.y + toolHeight }, 0x777777, 2, surface);
             }
             paintOffsets.y += toolHeight + toolGap;
         }
