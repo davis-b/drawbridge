@@ -2,6 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.gui);
 
 const Tool = @import("../tools.zig").Tool;
+const User = @import("../users.zig").User;
 const Peers = @import("../users.zig").Peers;
 const c = @import("../c.zig");
 const sdl = @import("../sdl/index.zig");
@@ -26,6 +27,8 @@ const peerToolGap = peerToolColorGap + peerToolColorHeight + 7;
 
 pub const Draw = struct {
     fn header(surface: *Surface, a: bool, b: bool) void {
+        // This could be a good spot for tool specific options,
+        // such as: pencil tip type (square/circle), size, etc
         const bg_color = 0xff0000;
         fillBg(surface);
         if (a) {
@@ -41,12 +44,24 @@ pub const Draw = struct {
     }
 
     /// Draw the left GUI bar, which contains tool icons.
-    fn left(surface: *Surface, images: Images) void {
+    fn left(surface: *Surface, images: Images, activeTool: Tool) void {
         fillBg(surface);
 
         var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = 0, .h = 0 };
-        for (images.tools) |image| {
+        for (images.tools) |image, index| {
             sdl.display.blit(image, null, surface, &paintOffsets);
+            if (@enumToInt(activeTool) == index) {
+                // draw box around selected tool
+
+                // Top horizontal bar
+                fillRect(surface, &c.SDL_Rect{ .x = 5, .y = paintOffsets.y, .w = toolWidth, .h = 3 }, 0x444444);
+                // Bottom horizontal bar
+                fillRect(surface, &c.SDL_Rect{ .x = 5, .y = paintOffsets.y + toolHeight, .w = toolWidth, .h = 3 }, 0x444444);
+                // Left vertical bar
+                fillRect(surface, &c.SDL_Rect{ .x = 5, .y = paintOffsets.y, .w = 3, .h = toolHeight }, 0x444444);
+                // Right vertical bar
+                fillRect(surface, &c.SDL_Rect{ .x = toolWidth + 3, .y = paintOffsets.y, .w = 3, .h = toolHeight }, 0x444444);
+            }
             paintOffsets.y += toolHeight + toolGap;
         }
     }
@@ -82,10 +97,10 @@ pub const Draw = struct {
     }
 
     /// Draws all GUI elements
-    pub fn all(gui_s: *Surfaces, peers: *Peers) void {
+    pub fn all(gui_s: *Surfaces, peers: *Peers, localUser: *const User) void {
         header(gui_s.header, true, true);
         footer(gui_s.footer);
-        left(gui_s.left, gui_s.images);
+        left(gui_s.left, gui_s.images, localUser.tool);
         right(gui_s.right, gui_s.images, peers);
     }
 };

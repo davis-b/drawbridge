@@ -3,7 +3,7 @@ const gui = @import("gui/index.zig");
 const Dot = @import("misc.zig").Dot;
 const Whiteboard = @import("whiteboard.zig").Whiteboard;
 const Tool = @import("tools.zig").Tool;
-const Peers = @import("users.zig").Peers;
+const users = @import("users.zig");
 
 pub const World = struct {
     window: *c.SDL_Window,
@@ -11,7 +11,8 @@ pub const World = struct {
     gui: *gui.Surfaces,
     bgColor: u32 = 0x090909,
     image: *Whiteboard,
-    peers: *Peers,
+    peers: *users.Peers,
+    user: *users.User,
 };
 
 pub fn pack(allocator: *std.mem.Allocator, world: *World) []const u8 {

@@ -19,8 +19,8 @@ pub const Surfaces = struct {
 pub const Dimensions = struct {
     pub const header = .{ .w = 100, .h = 20 };
     pub const footer = .{ .w = 150, .h = 20 };
-    pub const left = .{ .w = 40, .h = 400 };
-    pub const right = .{ .w = 30, .h = 200 };
+    pub const left = .{ .w = 40, .h = 800 };
+    pub const right = .{ .w = 30, .h = 800 };
 };
 
 pub fn init() !Surfaces {
@@ -39,6 +39,11 @@ pub fn init() !Surfaces {
 pub fn updatePeers(world: *World) void {
     draw.Draw.right(world.gui.right, world.gui.images, world.peers);
     blitRight(world.surface, world.gui);
+}
+
+pub fn updateTools(world: *World) void {
+    draw.Draw.all(world.gui, world.peers, world.user);
+    blitLeft(world.surface, world.gui);
 }
 
 const Init = struct {
@@ -66,10 +71,7 @@ pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
         var r = sdl.Rect{ .x = mid, .y = 0, .h = 0, .w = 0 };
         sdl.display.blit(gui_s.header, null, dst, &r);
     }
-    {
-        var r = sdl.Rect{ .x = 0, .y = gui_s.header.h, .h = 0, .w = 0 };
-        sdl.display.blit(gui_s.left, null, dst, &r);
-    }
+    blitLeft(dst, gui_s);
     blitRight(dst, gui_s);
     {
         const mid = @divFloor((dst.w - gui_s.footer.w), 2);
@@ -81,4 +83,9 @@ pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
 fn blitRight(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
     var r = sdl.Rect{ .x = dst.w - gui_s.right.w, .y = gui_s.header.h, .h = 0, .w = 0 };
     sdl.display.blit(gui_s.right, null, dst, &r);
+}
+
+fn blitLeft(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
+    var r = sdl.Rect{ .x = 0, .y = gui_s.header.h, .h = 0, .w = 0 };
+    sdl.display.blit(gui_s.left, null, dst, &r);
 }

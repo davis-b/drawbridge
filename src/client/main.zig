@@ -54,7 +54,7 @@ pub fn main() !void {
     var bgColor: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
 
     var running = true;
-    var local_user = users.User{};
+    var localUser = users.User{};
     var peers = users.Peers.init(allocator);
     var world = state.World{
         .window = window,
@@ -63,13 +63,14 @@ pub fn main() !void {
         .gui = &gui_surfaces,
         .bgColor = bgColor,
         .peers = &peers,
+        .user = &localUser,
     };
     defer c.SDL_FreeSurface(world.surface);
     defer world.image.deinit();
     defer peers.deinit();
     world.image.updateOnParentResize(world.surface, world.gui);
     fullRender(&world);
-    draw.thing(local_user.color, whiteboard.surface);
+    draw.thing(world.user.color, whiteboard.surface);
     draw.squares(whiteboard.surface);
 
     // Set to true if network initialization fails.
@@ -112,9 +113,9 @@ pub fn main() !void {
             sdl.display.updateSurface(world.window);
 
             while (c.SDL_PollEvent(&event) == 1) {
-                const maybe_action = onEvent(event, &world, &local_user, &running);
+                const maybe_action = onEvent(event, &world, world.user, &running);
                 if (maybe_action) |action| {
-                    doAction(action, &local_user, &whiteboard);
+                    doAction(action, world.user, &world, false);
                 }
             }
         }
@@ -136,17 +137,18 @@ pub fn main() !void {
         while (running) {
             renderImage(world.surface, world.image);
             sdl.display.updateSurface(world.window);
+            // TODO Only do this 1 or 2 times per second
             gui.updatePeers(&world);
 
             while (c.SDL_PollEvent(&event) == 1) {
-                const maybe_action = onEvent(event, &world, &local_user, &running);
+                const maybe_action = onEvent(event, &world, world.user, &running);
                 if (maybe_action) |action| {
                     // Until we have a preview of each client's cursor set up, save bandwith by not sending out unnecessary packets.
                     // When we do send these packets, we could probably get away with sending only some of them each second.
                     switch (action) {
                         .cursor_move => {
-                            if (!local_user.drawing) {
-                                doAction(action, &local_user, &whiteboard);
+                            if (!world.user.drawing) {
+                                doAction(action, world.user, &world, false);
                                 continue;
                             }
                         },
@@ -159,16 +161,14 @@ pub fn main() !void {
                             continue;
                         };
                     }
-                    doAction(action, &local_user, &whiteboard);
+                    doAction(action, world.user, &world, false);
                 }
             }
 
             while (netPipe.in.take() catch null) |netEvent| {
                 const user = world.peers.getPtr(netEvent.userID) orelse continue;
-                doAction(netEvent.action, user, &whiteboard);
-                // Should this belong in doAction()?
-                if (netEvent.action == .tool_change) gui.updatePeers(&world);
-                user.lastActive = std.time.milliTimestamp();
+                doAction(netEvent.action, user, &world, true);
+                user.lastActive = std.time.milliTimestamp(); // limit the number of times this can update per peer per second
             }
 
             while (netPipe.meta.take() catch null) |metaEvent| {
@@ -196,7 +196,7 @@ pub fn main() !void {
                     // Our state has been queried. Add it to outgoing queue here.
                     .state_query => |our_id| {
                         // We must copy the state here in this thread before any state changes.
-                        try netPipe.out.put(.{ .state = try copyState(allocator, &world, local_user, our_id) });
+                        try netPipe.out.put(.{ .state = try copyState(allocator, &world, our_id) });
                     },
                     // We have been supplied with a new world state to copy.
                     .state_set => |message| {
@@ -213,7 +213,7 @@ pub fn main() !void {
                         }
                         // NOTE this is where we might set image size, or maybe image size is set when entering a room
                         world.image.deserialize(new_state.image);
-                        local_user.reset();
+                        world.user.reset();
                         gui.updatePeers(&world);
                     },
                 }
@@ -225,11 +225,11 @@ pub fn main() !void {
 
 /// Copies and serializes this client's current transferable state into a buffer.
 /// Caller owns returned memory.
-fn copyState(allocator: *std.mem.Allocator, world: *state.World, local_user: users.User, our_id: u8) ![]u8 {
+fn copyState(allocator: *std.mem.Allocator, world: *state.World, our_id: u8) ![]u8 {
     const imageData = world.image.serialize();
     var userList = try allocator.alloc(net.WorldState.UniqueUser, world.peers.count() + 1);
     defer allocator.free(userList);
-    userList[0] = .{ .user = local_user, .id = our_id };
+    userList[0] = .{ .user = world.user.*, .id = our_id };
     userList[0].user.lastActive = std.time.milliTimestamp();
     var iter = world.peers.iterator();
     var index: usize = 1;
@@ -248,7 +248,7 @@ fn copyState(allocator: *std.mem.Allocator, world: *state.World, local_user: use
 fn fullRender(world: *state.World) void {
     sdl.display.fillRect(world.surface, null, world.bgColor);
     renderImage(world.surface, world.image);
-    gui.draw.Draw.all(world.gui, world.peers);
+    gui.draw.Draw.all(world.gui, world.peers, world.user);
     gui.blitAll(world.surface, world.gui);
 }
 
@@ -387,15 +387,20 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
     return null;
 }
 
-fn doAction(action: NetAction, user: *users.User, whiteboard: *Whiteboard) void {
+fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: bool) void {
     switch (action) {
         .tool_change => |new_tool| {
             user.tool = new_tool;
+            if (fromNet) {
+                gui.updatePeers(world);
+            } else {
+                gui.updateTools(world);
+            }
         },
         .tool_resize => |size| user.size = size,
         .cursor_move => |move| {
             if (user.drawing) {
-                tools.pencil(move.pos.x, move.pos.y, move.delta.x, move.delta.y, user, whiteboard.surface);
+                tools.pencil(move.pos.x, move.pos.y, move.delta.x, move.delta.y, user, world.image.surface);
             } else {
                 // Preview what would happen if the user started drawing.
                 // TODO add a layer that allows temporary stuff like this to appear at all.
@@ -409,9 +414,9 @@ fn doAction(action: NetAction, user: *users.User, whiteboard: *Whiteboard) void 
             user.drawing = true;
             const x = click.pos.x;
             const y = click.pos.y;
-            tools.pencil(x, y, 0, 0, user, whiteboard.surface);
+            tools.pencil(x, y, 0, 0, user, world.image.surface);
             // if (click.button != 1) { // != LMB
-            //     draw.line2(x, x - user.lastX, y, y - user.lastY, user, whiteboard.surface) catch unreachable;
+            //     draw.line2(x, x - user.lastX, y, y - user.lastY, user, world.image.surface) catch unreachable;
             // }
             user.lastX = x;
             user.lastY = y;
