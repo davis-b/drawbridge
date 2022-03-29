@@ -36,11 +36,15 @@ pub fn init() !Surfaces {
     return s;
 }
 
+/// Update the visual representation of peers with current peer data,
+/// then blit it to the window's surface.
 pub fn updatePeers(world: *World) void {
     draw.Draw.right(world.gui.right, world.gui.images, world.peers);
     blitRight(world.surface, world.gui);
 }
 
+/// Update the visual representation of local tools with current data,
+/// then blit it to the window's surface.
 pub fn updateTools(world: *World) void {
     draw.Draw.all(world.gui, world.peers, world.user);
     blitLeft(world.surface, world.gui);
