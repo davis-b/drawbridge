@@ -46,7 +46,7 @@ pub fn updatePeers(world: *World) void {
 /// Update the visual representation of local tools with current data,
 /// then blit it to the window's surface.
 pub fn updateTools(world: *World) void {
-    draw.Draw.all(world.gui, world.peers, world.user);
+    draw.Draw.left(world.gui.left, world.gui.images, world.user.tool);
     blitLeft(world.surface, world.gui);
 }
 

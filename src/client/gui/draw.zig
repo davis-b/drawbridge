@@ -45,7 +45,7 @@ pub const Draw = struct {
     }
 
     /// Draw the left GUI bar, which contains tool icons.
-    fn left(surface: *Surface, images: Images, activeTool: Tool) void {
+    pub fn left(surface: *Surface, images: Images, activeTool: Tool) void {
         fillBg(surface);
 
         var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = 0, .h = 0 };
