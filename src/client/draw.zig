@@ -36,27 +36,24 @@ pub fn rectangle(start: Dot, end: Dot, color: u32, thickness: u16, surface: *c.S
         break :blk 1;
     };
 
+    const x1 = std.math.min(start.x, end.x);
+    const y1 = std.math.min(start.y, end.y);
+    const x2 = std.math.max(start.x, end.x);
+    const y2 = std.math.max(start.y, end.y);
+
     // horizontal lines
     rect.w = deltaX;
-    putARectangle(start.x, start.y, color, &rect, surface);
-    putARectangle(start.x, end.y, color, &rect, surface);
+    putARectangle(x1, y1, color, &rect, surface);
+    putARectangle(x1, y2, color, &rect, surface);
 
     // vertical lines
     rect.w = thickness;
     rect.h = deltaY;
-    putARectangle(end.x, start.y, color, &rect, surface);
-    putARectangle(start.x, start.y, color, &rect, surface);
+    putARectangle(x2, y1, color, &rect, surface);
+    putARectangle(x1, y1, color, &rect, surface);
 
     rect.h = thickness;
-    putARectangle(end.x, end.y, color, &rect, surface);
-}
-
-pub fn circle(window: anytype, x: u64, y: u64, radius: u32) void {
-    var index: u32 = 0;
-    while (index != radius) : (index += 1) {
-        const delta = radius - index;
-        //putRectangle(x, y, color, surface);
-    }
+    putARectangle(x2, y2, color, &rect, surface);
 }
 
 pub fn line(xstart: c_int, xlength: c_int, ystart: c_int, ylength: c_int, color: u32, surface: *c.SDL_Surface) !void {
