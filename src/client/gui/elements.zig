@@ -9,10 +9,10 @@ const text = @import("font.zig");
 
 const Colors_ = struct {
     primary: u32 = 0x9a77ba,
-    secondary: u32 = 0xaaffbb,
+    secondary: u32 = 0x554453,
     highlight: u32 = 0xbb77bb,
     bg_shadow: u32 = 0x030f2b,
-    background: u32 = 0x554453,
+    background: u32 = 0x142238,
     text: u32 = 0xffffff,
 };
 pub var Colors = Colors_{};
@@ -43,11 +43,11 @@ pub const Slider = struct {
         const activePos = @floatToInt(u16, activePercent * @intToFloat(f16, len));
         switch (direction) {
             .horizontal => {
-                surface_draw.rectangle(pos, .{ .x = pos.x + len, .y = pos.y }, Colors.background, thickness, surface);
+                surface_draw.rectangle(pos, .{ .x = pos.x + len, .y = pos.y }, Colors.secondary, thickness, surface);
                 surface_draw.circleFilled(.{ .x = pos.x + activePos, .y = pos.y }, radius, Colors.primary, surface);
             },
             .vertical => {
-                surface_draw.rectangle(pos, .{ .x = pos.x, .y = pos.y + len }, Colors.background, thickness, surface);
+                surface_draw.rectangle(pos, .{ .x = pos.x, .y = pos.y + len }, Colors.secondary, thickness, surface);
                 surface_draw.circleFilled(.{ .x = pos.x, .y = pos.y + activePos }, radius, Colors.primary, surface);
             },
         }

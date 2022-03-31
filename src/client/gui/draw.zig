@@ -17,8 +17,6 @@ const Dimensions = @import("index.zig").Dimensions;
 const header_info = @import("header.zig");
 const text = @import("font.zig");
 
-const bgColor = 0x142238;
-
 pub const toolHeight = 30;
 const toolWidth = 30;
 pub const toolGap = 5;
@@ -140,7 +138,7 @@ pub const Draw = struct {
 };
 
 fn fillBg(surface: *Surface) void {
-    fillRect(surface, null, bgColor);
+    fillRect(surface, null, elements.Colors.background);
 }
 
 /// A collection of surfaces with our GUI images painted on them.
