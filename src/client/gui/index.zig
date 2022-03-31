@@ -17,7 +17,7 @@ pub const Surfaces = struct {
 };
 
 pub const Dimensions = struct {
-    pub const header = .{ .w = 100, .h = 20 };
+    pub const header = .{ .w = 1000, .h = 35 };
     pub const footer = .{ .w = 150, .h = 20 };
     pub const left = .{ .w = 40, .h = 800 };
     pub const right = .{ .w = 30, .h = 800 };
@@ -50,6 +50,13 @@ pub fn updateTools(world: *World) void {
     blitLeft(world.surface, world.gui);
 }
 
+/// Update the header with current data.
+/// Then blits it to the window's surface.
+pub fn updateHeader(world: *World) void {
+    draw.Draw.header(world.gui.header, world.user);
+    blitHeader(world.surface, world.gui);
+}
+
 const Init = struct {
     fn header() !*Surface {
         return try sdl.display.initRgbSurface(0, Dimensions.header.w, Dimensions.header.h, 24);
@@ -70,11 +77,7 @@ const Init = struct {
 
 /// Blits all GUI elements to dst surface
 pub fn blitAll(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
-    {
-        const mid = @divFloor((dst.w - gui_s.header.w), 2);
-        var r = sdl.Rect{ .x = mid, .y = 0, .h = 0, .w = 0 };
-        sdl.display.blit(gui_s.header, null, dst, &r);
-    }
+    blitHeader(dst, gui_s);
     blitLeft(dst, gui_s);
     blitRight(dst, gui_s);
     {
@@ -92,4 +95,10 @@ fn blitRight(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
 fn blitLeft(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
     var r = sdl.Rect{ .x = 0, .y = gui_s.header.h, .h = 0, .w = 0 };
     sdl.display.blit(gui_s.left, null, dst, &r);
+}
+
+fn blitHeader(dst: *c.SDL_Surface, gui_s: *Surfaces) void {
+    const mid = @divFloor((dst.w - gui_s.header.w), 2);
+    var r = sdl.Rect{ .x = mid, .y = 0, .h = 0, .w = 0 };
+    sdl.display.blit(gui_s.header, null, dst, &r);
 }

@@ -5,13 +5,17 @@ const Tool = @import("../tools.zig").Tool;
 const User = @import("../users.zig").User;
 const Peers = @import("../users.zig").Peers;
 const surface_draw = @import("../draw.zig");
+const Dot = @import("../misc.zig").Dot;
 const c = @import("../c.zig");
 const sdl = @import("../sdl/index.zig");
 const fillRect = sdl.display.fillRect;
 const Surface = sdl.Surface;
 
+const elements = @import("elements.zig");
 const Surfaces = @import("index.zig").Surfaces;
 const Dimensions = @import("index.zig").Dimensions;
+const header_info = @import("header.zig");
+const text = @import("font.zig");
 
 const bgColor = 0x142238;
 
@@ -27,16 +31,46 @@ const peerToolColorHeight = 3;
 const peerToolGap = peerToolColorGap + peerToolColorHeight + 7;
 
 pub const Draw = struct {
-    fn header(surface: *Surface, a: bool, b: bool) void {
+    pub fn header(surface: *Surface, user: *const User) void {
         // This could be a good spot for tool specific options,
         // such as: pencil tip type (square/circle), size, etc
-        const bg_color = 0xff0000;
         fillBg(surface);
-        if (a) {
-            fillRect(surface, &c.SDL_Rect{ .x = 25, .y = 0, .w = 25, .h = 20 }, 0x00ff00);
-        }
-        if (b) {
-            fillRect(surface, &c.SDL_Rect{ .x = 50, .y = 0, .w = 25, .h = 20 }, 0x0000ff);
+
+        const y = @divFloor(Dimensions.header.h, 2);
+        var x: c_int = header_info.margin;
+        for (header_info.activeElements(user.tool)) |elem| {
+            const len = header_info.elementWidth(elem);
+            const pos = Dot{ .x = x, .y = y };
+            switch (elem) {
+                // Size slider
+                .tool_size => {
+                    // Calculate user's size as a percentage of its potential.
+                    const sizePercentage = @intToFloat(f16, user.size) / std.math.maxInt(@TypeOf(user.size));
+                    // Map that percentage to the upcoming slider.
+                    header_info.ToolSize.draw(surface, .{ .x = pos.x + header_info.ToolSize.startMargin, .y = pos.y }, sizePercentage, 3, 7, .horizontal);
+
+                    // Write the user's current tool size next to the size slider.
+                    var buffer: [3]u8 = undefined;
+                    const userSize = text.intToString(user.size, buffer[0..]) catch unreachable;
+                    header_info.ToolSize.drawString(surface, userSize, 2, pos);
+                },
+                // Active color indicator
+                .color => {
+                    const end = Dot{ .x = x + len, .y = y + 10 };
+                    const start = Dot{ .x = x, .y = y - 10 };
+                    surface_draw.rectangleFilled(start, end, 0x444477, surface);
+                    surface_draw.rectangle(start, end, 0x333355, 1, surface);
+                    surface_draw.circleFilled(.{ .x = pos.x + @divFloor(len, 2), .y = pos.y }, 7, user.color, surface);
+
+                    var buffer: [10]u8 = undefined;
+                    var fbs = std.io.fixedBufferStream(&buffer);
+                    std.fmt.formatIntValue(user.color, "x", .{}, fbs.writer()) catch @panic("x");
+                    var colorString = fbs.getWritten();
+                    if (colorString.len == 8) colorString = colorString[2..]; // remove alpha info because we don't use alpha yet
+                    text.write(surface, colorString, .{ .x = start.x - 7, .y = end.y + 2 }, 1, elements.Colors.text, 300);
+                },
+            }
+            x += header_info.elementGap + len;
         }
     }
 
@@ -98,7 +132,7 @@ pub const Draw = struct {
 
     /// Draws all GUI elements
     pub fn all(gui_s: *Surfaces, peers: *Peers, localUser: *const User) void {
-        header(gui_s.header, true, true);
+        header(gui_s.header, localUser);
         footer(gui_s.footer);
         left(gui_s.left, gui_s.images, localUser.tool);
         right(gui_s.right, gui_s.images, peers);

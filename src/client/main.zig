@@ -334,11 +334,30 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
                 return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
             } else {
-                const guiEvent = gui.events.handleButtonPress(world.surface, world.gui, event.button.x, event.button.y);
+                const guiEvent = gui.events.handleButtonPress(world.surface, world.gui, world.user, event.button.x, event.button.y);
                 if (guiEvent) |ge| {
                     switch (ge) {
                         .tool_change => |tool| {
                             return NetAction{ .tool_change = tool };
+                        },
+                        .tool_resize_slider => |percent| {
+                            const TOOL_RESIZE_T: type = std.meta.TagPayload(NetAction, .tool_resize);
+                            var size = @floatToInt(TOOL_RESIZE_T, std.math.maxInt(TOOL_RESIZE_T) * percent);
+                            const max = std.math.max(size, world.user.size);
+                            const min = std.math.min(size, world.user.size);
+                            const delta = max - min;
+
+                            var offset: i16 = delta;
+                            if (delta == 0) {
+                                return null;
+                            } else if (delta < 5) {
+                                offset = 1;
+                            } else if (delta < 10) {
+                                offset = 2;
+                            }
+                            const newSize = if (size >= world.user.size) world.user.size + offset else world.user.size - offset;
+                            log.debug("size {}   delta {}   offset {}   newsize {}   ", .{ size, delta, offset, newSize });
+                            return NetAction{ .tool_resize = @intCast(TOOL_RESIZE_T, std.math.max(1, newSize)) };
                         },
                     }
                 }
@@ -395,9 +414,15 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
                 gui.updatePeers(world);
             } else {
                 gui.updateTools(world);
+                gui.updateHeader(world);
             }
         },
-        .tool_resize => |size| user.size = size,
+        .tool_resize => |size| {
+            user.size = size;
+            if (!fromNet) {
+                gui.updateHeader(world);
+            }
+        },
         .cursor_move => |move| {
             if (user.drawing) {
                 tools.pencil(move.pos.x, move.pos.y, move.delta.x, move.delta.y, user, world.image.surface);
@@ -424,7 +449,12 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
         .mouse_release => |click| {
             user.drawing = false;
         },
-        .color_change => |color| user.color = color,
+        .color_change => |color| {
+            user.color = color;
+            if (!fromNet) {
+                gui.updateHeader(world);
+            }
+        },
         .layer_switch => |x| {
             //
         },
