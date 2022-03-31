@@ -50,11 +50,18 @@ pub const Draw = struct {
 
         var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = 0, .h = 0 };
         for (images.tools) |image, index| {
-            sdl.display.blit(image, null, surface, &paintOffsets);
             if (@enumToInt(activeTool) == index) {
-                // draw box around selected tool
-                surface_draw.rectangle(.{ .x = 3, .y = paintOffsets.y }, .{ .x = toolWidth + 3, .y = paintOffsets.y + toolHeight }, 0x777777, 2, surface);
+                // Draw box around selected tool.
+                // surface_draw.rectangle(.{ .x = 3, .y = paintOffsets.y }, .{ .x = toolWidth + 3, .y = paintOffsets.y + toolHeight }, 0x777777, 2, surface);
+                // Indent area around the selected tool.
+                surface_draw.rectangleFilled(
+                    .{ .x = 3, .y = paintOffsets.y },
+                    .{ .x = toolWidth + 5, .y = paintOffsets.y + toolHeight },
+                    elements.Colors.bg_shadow,
+                    surface,
+                );
             }
+            sdl.display.blit(image, null, surface, &paintOffsets);
             paintOffsets.y += toolHeight + toolGap;
         }
     }
