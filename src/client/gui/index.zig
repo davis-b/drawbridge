@@ -6,6 +6,7 @@ const sdl = @import("../sdl/index.zig");
 
 pub const draw = @import("draw.zig");
 pub const events = @import("events.zig");
+pub const header_info = @import("header.zig");
 
 pub const Surface = sdl.Surface;
 pub const Surfaces = struct {

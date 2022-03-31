@@ -3,6 +3,7 @@ const log = std.log.scoped(.gui);
 
 const Tool = @import("../tools.zig").Tool;
 const User = @import("../users.zig").User;
+const Dot = @import("../misc.zig").Dot;
 const sdl = @import("../sdl/index.zig");
 
 const Surfaces = @import("index.zig").Surfaces;
@@ -15,6 +16,20 @@ pub const Event = union(enum) {
     tool_resize_slider: f16,
 };
 
+const GuiElement = enum { header, footer, left, right };
+fn mouseIsWhere(parent: *sdl.Surface, s: *Surfaces, pos: Dot) ?GuiElement {
+    if (pos.y <= s.header.h) {
+        return .header;
+    } else if (pos.y >= parent.h - s.footer.h) {
+        return .footer;
+    } else if (pos.x <= s.left.w) {
+        return .left;
+    } else if (pos.x >= parent.w - s.right.w) {
+        return .right;
+    }
+    return null;
+}
+
 /// Takes a parent surface and our GUI surfaces, as well as the position of the click.
 /// This function handles button presses to any GUI element.
 /// Therefore, to get the x/y positions of a click inside a specific element,
@@ -22,29 +37,40 @@ pub const Event = union(enum) {
 /// We layer our button handling to match the visual layering, where the last blitted item will appear above lower ones.
 /// For instance, the left side bar starts at y0, however it is not visible until y + (header height), therefore
 /// clicks should adjust their y position by the header's height.
-pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, user: *const User, x: c_int, y: c_int) ?Event {
-    // header
-    if (y <= s.header.h) {
-        log.debug("header {}x{}", .{ x, y });
-        const mid = @divFloor((parent.w - s.header.w), 2);
-        return handleHeaderPress(user.tool, x - mid, user.size);
+pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, user: *const User, pos: Dot) ?Event {
+    switch (mouseIsWhere(parent, s, pos) orelse return null) {
+        .header => {
+            const mid = @divFloor((parent.w - s.header.w), 2);
+            return handleHeaderPress(pos.x - mid, user.tool, user.size);
+        },
+        .footer => {
+            const newY = pos.y - (parent.h - s.footer.h);
+            log.debug("footer {}x{}", .{ pos.x, newY });
+        },
+        .left => {
+            const newY = pos.y - s.header.h;
+            if (whichToolPressed(newY)) |tool| {
+                return Event{ .tool_change = tool };
+            }
+        },
+        .right => {
+            const newX = pos.x - (parent.w - s.right.w);
+            log.debug("right {}x{}", .{ newX, pos.y });
+        },
     }
-    // footer
-    else if (y >= parent.h - s.footer.h) {
-        const newY = y - (parent.h - s.footer.h);
-        log.debug("footer {}x{}", .{ x, newY });
-    }
-    // left sidebar
-    else if (x <= s.left.w) {
-        const newY = y - s.header.h;
-        if (whichToolPressed(newY)) |tool| {
-            return Event{ .tool_change = tool };
-        }
-    }
-    // right sidebar
-    else if (x >= parent.w - s.right.w) {
-        const newX = x - (parent.w - s.right.w);
-        log.debug("right {}x{}", .{ newX, y });
+    return null;
+}
+
+pub fn handleMotion(parent: *sdl.Surface, s: *Surfaces, user: *const User, clicking: bool, pos: Dot, delta: Dot) ?Event {
+    const where = mouseIsWhere(parent, s, pos) orelse return null;
+    switch (where) {
+        .header => {
+            if (clicking) {
+                const mid = @divFloor((parent.w - s.header.w), 2);
+                return handleHeaderPress(pos.x - mid, user.tool, user.size);
+            }
+        },
+        else => {},
     }
     return null;
 }
@@ -59,12 +85,11 @@ fn whichToolPressed(y: c_int) ?Tool {
     return tool;
 }
 
-fn handleHeaderPress(tool: Tool, x: c_int, toolSize: u8) ?Event {
+fn handleHeaderPress(x: c_int, tool: Tool, toolSize: u8) ?Event {
     var startPos: u16 = header.margin;
     for (header.activeElements(tool)) |elem| {
         const w = header.elementWidth(elem);
         if (x > startPos and x < startPos + w) {
-            log.debug("header pressed {}", .{elem});
             switch (elem) {
                 .tool_size => {
                     var clicked = x - startPos;

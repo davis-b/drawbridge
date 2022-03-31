@@ -86,4 +86,26 @@ pub const Slider = struct {
         const percent = @intToFloat(f16, realPos) / @intToFloat(f16, slen);
         return percent;
     }
+
+    /// Takes a percentage, a maximum value, and a current value.
+    /// Returns a number that maps closely to the percentage of that maximum value.
+    /// The returned number may be smaller than expected when it is close to the current value.
+    /// This is done to make for less jerky sliding motions.
+    pub fn applySlideEvent(self: *const Slider, comptime T: type, percent: f16, current: T, maximum: T) T {
+        var new = @floatToInt(T, @intToFloat(f16, maximum) * percent);
+        const larger = std.math.max(new, current);
+        const smaller = std.math.min(new, current);
+        const delta = larger - smaller;
+
+        var offset: T = delta;
+        if (delta == 0) {
+            return current;
+        } else if (delta < 5) {
+            offset = 1;
+        } else if (delta < 10) {
+            offset = 2;
+        }
+        const result = if (new >= current) current + offset else current - offset;
+        return @intCast(T, result);
+    }
 };

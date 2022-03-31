@@ -6,6 +6,7 @@ const parser = @import("parser");
 const c = @import("c.zig");
 const sdl = @import("sdl/index.zig");
 
+const Dot = @import("misc.zig").Dot;
 const net = @import("net/index.zig");
 const NetAction = @import("net/actions.zig").Action;
 const misc = @import("misc.zig");
@@ -323,9 +324,25 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
         c.SDL_MOUSEMOTION => {
             var x = event.motion.x;
             var y = event.motion.y;
-            const in_image = coordinatesAreInImage(world.image.render_area, x, y);
-            adjustMousePos(world.image, &x, &y);
-            return NetAction{ .cursor_move = .{ .pos = .{ .x = x, .y = y }, .delta = .{ .x = event.motion.xrel, .y = event.motion.yrel } } };
+            if (coordinatesAreInImage(world.image.render_area, x, y)) {
+                adjustMousePos(world.image, &x, &y);
+                return NetAction{ .cursor_move = .{ .pos = .{ .x = x, .y = y }, .delta = .{ .x = event.motion.xrel, .y = event.motion.yrel } } };
+            } else {
+                const pos = Dot{ .x = event.motion.x, .y = event.motion.y };
+                const delta = Dot{ .x = event.motion.xrel, .y = event.motion.yrel };
+                const clicking = (event.motion.state & c.SDL_BUTTON_LMASK) != 0;
+                const guiEvent = gui.events.handleMotion(world.surface, world.gui, world.user, clicking, pos, delta);
+                if (guiEvent) |ge| {
+                    switch (ge) {
+                        .tool_resize_slider => |percent| {
+                            const TOOL_RESIZE_T: type = std.meta.TagPayload(NetAction, .tool_resize);
+                            const new = gui.header_info.ToolSize.applySlideEvent(TOOL_RESIZE_T, percent, world.user.size, std.math.maxInt(TOOL_RESIZE_T));
+                            return NetAction{ .tool_resize = std.math.max(1, new) };
+                        },
+                        else => {},
+                    }
+                }
+            }
         },
         c.SDL_MOUSEBUTTONDOWN => {
             var x = event.button.x;
@@ -334,7 +351,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
                 return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
             } else {
-                const guiEvent = gui.events.handleButtonPress(world.surface, world.gui, world.user, event.button.x, event.button.y);
+                const guiEvent = gui.events.handleButtonPress(world.surface, world.gui, world.user, .{ .x = event.button.x, .y = event.button.y });
                 if (guiEvent) |ge| {
                     switch (ge) {
                         .tool_change => |tool| {
@@ -342,22 +359,8 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                         },
                         .tool_resize_slider => |percent| {
                             const TOOL_RESIZE_T: type = std.meta.TagPayload(NetAction, .tool_resize);
-                            var size = @floatToInt(TOOL_RESIZE_T, std.math.maxInt(TOOL_RESIZE_T) * percent);
-                            const max = std.math.max(size, world.user.size);
-                            const min = std.math.min(size, world.user.size);
-                            const delta = max - min;
-
-                            var offset: i16 = delta;
-                            if (delta == 0) {
-                                return null;
-                            } else if (delta < 5) {
-                                offset = 1;
-                            } else if (delta < 10) {
-                                offset = 2;
-                            }
-                            const newSize = if (size >= world.user.size) world.user.size + offset else world.user.size - offset;
-                            log.debug("size {}   delta {}   offset {}   newsize {}   ", .{ size, delta, offset, newSize });
-                            return NetAction{ .tool_resize = @intCast(TOOL_RESIZE_T, std.math.max(1, newSize)) };
+                            const new = gui.header_info.ToolSize.applySlideEvent(TOOL_RESIZE_T, percent, world.user.size, std.math.maxInt(TOOL_RESIZE_T));
+                            return NetAction{ .tool_resize = std.math.max(1, new) };
                         },
                     }
                 }
