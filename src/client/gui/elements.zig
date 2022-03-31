@@ -31,6 +31,8 @@ pub const Slider = struct {
     /// A space at the beginning of this element to allow for a more generous sliding area. 
     startMargin: u8,
 
+    colors: ?Colors_ = null,
+
     /// The total length of the slider portion of this element.
     pub fn sliderLen(self: *const Slider) u16 {
         return self.len - (self.textLen + self.textGap + self.startMargin);
@@ -38,17 +40,19 @@ pub const Slider = struct {
 
     /// Draws the slider element.
     /// The activePercent argument dictates where the slider circle will appear.
-    pub fn draw(self: *const Slider, surface: *Surface, pos: Dot, activePercent: f16, thickness: u8, radius: u8, direction: enum { horizontal, vertical }) void {
+    pub fn draw(self: *const Slider, surface: *Surface, pos_: Dot, activePercent: f16, thickness: u8, radius: u8, direction: enum { horizontal, vertical }) void {
+        const pos = Dot{ .x = pos_.x + self.startMargin, .y = pos_.y };
         const len = self.sliderLen();
         const activePos = @floatToInt(u16, activePercent * @intToFloat(f16, len));
+        const colors = self.colors orelse Colors;
         switch (direction) {
             .horizontal => {
-                surface_draw.rectangle(pos, .{ .x = pos.x + len, .y = pos.y }, Colors.secondary, thickness, surface);
-                surface_draw.circleFilled(.{ .x = pos.x + activePos, .y = pos.y }, radius, Colors.primary, surface);
+                surface_draw.rectangle(pos, .{ .x = pos.x + len, .y = pos.y }, colors.secondary, thickness, surface);
+                surface_draw.circleFilled(.{ .x = pos.x + activePos, .y = pos.y }, radius, colors.primary, surface);
             },
             .vertical => {
-                surface_draw.rectangle(pos, .{ .x = pos.x, .y = pos.y + len }, Colors.secondary, thickness, surface);
-                surface_draw.circleFilled(.{ .x = pos.x, .y = pos.y + activePos }, radius, Colors.primary, surface);
+                surface_draw.rectangle(pos, .{ .x = pos.x, .y = pos.y + len }, colors.secondary, thickness, surface);
+                surface_draw.circleFilled(.{ .x = pos.x, .y = pos.y + activePos }, radius, colors.primary, surface);
             },
         }
     }
@@ -56,6 +60,7 @@ pub const Slider = struct {
     /// Draws a string following the slider itself.
     /// Currently only works with horizontal sliders.
     pub fn drawString(self: *const Slider, surface: *Surface, string: []const u8, size: u8, pos: Dot) void {
+        const colors = self.colors orelse Colors;
         text.write(
             surface,
             string,
@@ -64,7 +69,7 @@ pub const Slider = struct {
                 .y = pos.y - @divFloor(text.letterHeight, 2),
             },
             size,
-            Colors.text,
+            colors.text,
             self.textLen,
         );
     }
