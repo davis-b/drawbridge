@@ -56,6 +56,92 @@ pub fn rectangle(start: Dot, end: Dot, color: u32, thickness: u16, surface: *c.S
     putARectangle(x2, y2, color, &rect, surface);
 }
 
+pub fn rectangleFilled(start: Dot, end: Dot, color: u32, surface: *c.SDL_Surface) void {
+    const deltaX = math.absInt(start.x - end.x) catch |err| blk: {
+        log.err("draw.rectangle() absInt error: {}", .{err});
+        break :blk 1;
+    };
+    const deltaY = math.absInt(start.y - end.y) catch |err| blk: {
+        log.err("draw.rectangle() absInt error: {}", .{err});
+        break :blk 1;
+    };
+    var rect: c.SDL_Rect = c.SDL_Rect{ .x = std.math.min(start.x, end.x), .y = std.math.min(start.y, end.y), .h = deltaY, .w = deltaX };
+    _ = c.SDL_FillRect(surface, &rect, color);
+}
+
+/// Draws a filled in circle on the given surface.
+pub fn circleFilled(pos: Dot, radius: u16, color: u32, surface: *c.SDL_Surface) void {
+    var rect = c.SDL_Rect{ .x = 0, .y = 0, .h = 1, .w = 1 };
+    var err: c_int = -@intCast(i16, radius);
+    var x: c_int = radius;
+    var y: c_int = 0;
+    while (x >= y) {
+        const lastY = y;
+        err += (y * 2) + 1;
+        y += 1;
+
+        rect.w = x * 2;
+        putARectangle(pos.x - x, pos.y + lastY, color, &rect, surface);
+        if (y != 0) {
+            putARectangle(pos.x - x, pos.y - lastY, color, &rect, surface);
+        }
+
+        if (err >= 0) {
+            if (x != lastY) {
+                rect.w = lastY * 2;
+                putARectangle(pos.x - lastY, pos.y + x, color, &rect, surface);
+                if (y != 0) {
+                    putARectangle(pos.x - lastY, pos.y - x, color, &rect, surface);
+                }
+            }
+            err -= (x * 2);
+            x -= 1;
+            err += 1;
+        }
+    }
+}
+
+/// Utilizes the "midpoint circle algorithm" to draw the outline of a circle on the given surface.
+pub fn circleOutline(pos: Dot, radius: u16, color: u32, surface: *c.SDL_Surface) void {
+    var rect = c.SDL_Rect{ .x = 0, .y = 0, .h = 1, .w = 1 };
+    var x: c_int = radius - 1;
+    var y: c_int = 0;
+    var dx: c_int = 1;
+    var dy: c_int = 1;
+    var err: c_int = dx - (radius << 1);
+    while (x >= y) {
+        putARectangle(pos.x + x, pos.y + y, color, &rect, surface);
+        putARectangle(pos.x - x, pos.y + y, color, &rect, surface);
+        putARectangle(pos.x - x, pos.y - y, color, &rect, surface);
+        putARectangle(pos.x + x, pos.y - y, color, &rect, surface);
+        putARectangle(pos.x + y, pos.y + x, color, &rect, surface);
+        putARectangle(pos.x - y, pos.y + x, color, &rect, surface);
+        putARectangle(pos.x - y, pos.y - x, color, &rect, surface);
+        putARectangle(pos.x + y, pos.y - x, color, &rect, surface);
+
+        if (err <= 0) {
+            y += 1;
+            err += dy;
+            dy += 2;
+        }
+        if (err > 0) {
+            x -= 1;
+            dx += 2;
+            err += dx - (radius << 1);
+        }
+    }
+}
+
+pub fn diamond(pos: Dot, radius: u16, color: u32, surface: *c.SDL_Surface) void {
+    var rect = c.SDL_Rect{ .x = 0, .y = 0, .h = 1, .w = 0 };
+    var index: c_int = 0;
+    while (index != radius) : (index += 1) {
+        rect.w = index * 2;
+        putARectangle(pos.x - index, pos.y + index, color, &rect, surface);
+        putARectangle(pos.x - index, ((pos.y - 1) + (radius * 2)) - index, color, &rect, surface);
+    }
+}
+
 pub fn line(xstart: c_int, xlength: c_int, ystart: c_int, ylength: c_int, color: u32, surface: *c.SDL_Surface) !void {
     const xsteps: c_int = try math.absInt(xlength);
     const ysteps: c_int = try math.absInt(ylength);
