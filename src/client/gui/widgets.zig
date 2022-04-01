@@ -17,9 +17,9 @@ const Colors_ = struct {
 };
 pub var Colors = Colors_{};
 
-/// A slider element with optional text output.
+/// A slider widget with optional text output.
 pub const Slider = struct {
-    /// The total length of this element. Includes the slider as well as the text.
+    /// The total length of this widget. Includes the slider as well as the text.
     len: u16,
 
     /// The maximum allotted length (in pixels; traveling in the direction of the slider) of the text following the slider.
@@ -28,17 +28,17 @@ pub const Slider = struct {
     /// The gap between the size slider and the following text.
     textGap: u16,
 
-    /// A space at the beginning of this element to allow for a more generous sliding area. 
+    /// A space at the beginning of this widget to allow for a more generous sliding area. 
     startMargin: u8,
 
     colors: ?Colors_ = null,
 
-    /// The total length of the slider portion of this element.
+    /// The total length of the slider portion of this widget.
     pub fn sliderLen(self: *const Slider) u16 {
         return self.len - (self.textLen + self.textGap + self.startMargin);
     }
 
-    /// Draws the slider element.
+    /// Draws the slider widget.
     /// The activePercent argument dictates where the slider circle will appear.
     pub fn draw(self: *const Slider, surface: *Surface, pos_: Dot, activePercent: f16, thickness: u8, radius: u8, direction: enum { horizontal, vertical }) void {
         const pos = Dot{ .x = pos_.x + self.startMargin, .y = pos_.y };
@@ -85,7 +85,7 @@ pub const Slider = struct {
         // We remove the start margin to get the actual position along the visible slider.
         const realPos = position - self.startMargin;
         const slen = self.sliderLen();
-        // This can be true when we click past the slider, into the text area of the element.
+        // This can be true when we click past the slider, into the text area of the widget.
         if (realPos >= slen) return null;
 
         const percent = @intToFloat(f16, realPos) / @intToFloat(f16, slen);

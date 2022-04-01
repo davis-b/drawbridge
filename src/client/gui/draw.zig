@@ -11,7 +11,7 @@ const sdl = @import("../sdl/index.zig");
 const fillRect = sdl.display.fillRect;
 const Surface = sdl.Surface;
 
-const elements = @import("elements.zig");
+const widgets = @import("widgets.zig");
 const Surfaces = @import("index.zig").Surfaces;
 const Dimensions = @import("index.zig").Dimensions;
 const header_info = @import("header.zig");
@@ -65,7 +65,7 @@ pub const Draw = struct {
                     std.fmt.formatIntValue(user.color, "x", .{}, fbs.writer()) catch @panic("x");
                     var colorString = fbs.getWritten();
                     if (colorString.len == 8) colorString = colorString[2..]; // remove alpha info because we don't use alpha yet
-                    text.write(surface, colorString, .{ .x = start.x - 7, .y = end.y + 2 }, 1, elements.Colors.text, 300);
+                    text.write(surface, colorString, .{ .x = start.x - 7, .y = end.y + 2 }, 1, widgets.Colors.text, 300);
                 },
             }
             x += header_info.elementGap + len;
@@ -89,7 +89,7 @@ pub const Draw = struct {
                 surface_draw.rectangleFilled(
                     .{ .x = 3, .y = paintOffsets.y },
                     .{ .x = toolWidth + 5, .y = paintOffsets.y + toolHeight },
-                    elements.Colors.bg_shadow,
+                    widgets.Colors.bg_shadow,
                     surface,
                 );
             }

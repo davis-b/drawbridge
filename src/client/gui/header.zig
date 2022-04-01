@@ -1,7 +1,7 @@
 const std = @import("std");
 const log = std.log.scoped(.gui_header);
 const Tool = @import("../tools.zig").Tool;
-const elements = @import("elements.zig");
+const widgets = @import("widgets.zig");
 
 /// The number of pixels between each header element.
 pub const elementGap = 20;
@@ -15,7 +15,7 @@ pub const ContextElement = enum {
     color,
 };
 
-pub const ToolSize = elements.Slider{
+pub const ToolSize = widgets.Slider{
     .len = elementWidth(.tool_size),
     .textLen = 25,
     .textGap = 15,
