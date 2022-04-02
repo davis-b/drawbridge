@@ -20,6 +20,7 @@ pub const ToolSize = widgets.Slider{
     .textLen = 25,
     .textGap = 15,
     .startMargin = 7,
+    .radius = 7,
 };
 
 pub fn elementWidth(element: ContextElement) u16 {

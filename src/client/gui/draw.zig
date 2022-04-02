@@ -45,7 +45,7 @@ pub const Draw = struct {
                     // Calculate user's size as a percentage of its potential.
                     const sizePercentage = @intToFloat(f16, user.size) / std.math.maxInt(@TypeOf(user.size));
                     // Map that percentage to the upcoming slider.
-                    header_info.ToolSize.draw(surface, .{ .x = pos.x, .y = pos.y }, sizePercentage, 3, 7, .horizontal);
+                    header_info.ToolSize.draw(surface, .{ .x = pos.x, .y = pos.y }, sizePercentage, 3, .horizontal);
 
                     // Write the user's current tool size next to the size slider.
                     var buffer: [3]u8 = undefined;

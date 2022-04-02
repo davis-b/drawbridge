@@ -31,6 +31,9 @@ pub const Slider = struct {
     /// A space at the beginning of this widget to allow for a more generous sliding area. 
     startMargin: u8,
 
+    /// The radius of this slider's active element.
+    radius: u8,
+
     colors: ?Colors_ = null,
 
     /// The total length of the slider portion of this widget.
@@ -40,7 +43,7 @@ pub const Slider = struct {
 
     /// Draws the slider widget.
     /// The activePercent argument dictates where the slider circle will appear.
-    pub fn draw(self: *const Slider, surface: *Surface, pos_: Dot, activePercent: f16, thickness: u8, radius: u8, direction: enum { horizontal, vertical }) void {
+    pub fn draw(self: *const Slider, surface: *Surface, pos_: Dot, activePercent: f16, thickness: u8, direction: enum { horizontal, vertical }) void {
         const pos = Dot{ .x = pos_.x + self.startMargin, .y = pos_.y };
         const len = self.sliderLen();
         const activePos = @floatToInt(u16, activePercent * @intToFloat(f16, len));
@@ -48,11 +51,11 @@ pub const Slider = struct {
         switch (direction) {
             .horizontal => {
                 surface_draw.rectangle(pos, .{ .x = pos.x + len, .y = pos.y }, colors.secondary, thickness, surface);
-                surface_draw.circleFilled(.{ .x = pos.x + activePos, .y = pos.y }, radius, colors.primary, surface);
+                surface_draw.circleFilled(.{ .x = pos.x + activePos, .y = pos.y }, self.radius, colors.primary, surface);
             },
             .vertical => {
                 surface_draw.rectangle(pos, .{ .x = pos.x, .y = pos.y + len }, colors.secondary, thickness, surface);
-                surface_draw.circleFilled(.{ .x = pos.x, .y = pos.y + activePos }, radius, colors.primary, surface);
+                surface_draw.circleFilled(.{ .x = pos.x, .y = pos.y + activePos }, self.radius, colors.primary, surface);
             },
         }
     }
