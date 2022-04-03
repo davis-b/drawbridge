@@ -1,5 +1,5 @@
 const std = @import("std");
-const log = std.log.scoped(.gui);
+const log = std.log.scoped(.gui_events);
 
 const Tool = @import("../tools.zig").Tool;
 const User = @import("../users.zig").User;
