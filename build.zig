@@ -39,6 +39,7 @@ pub fn build(b: *Builder) void {
     inline for ([_][]const u8{
         "src/net/index.zig",
         "src/client/net/outgoing.zig",
+        "src/client/gui/layout.zig",
         "src/server/pack.zig",
         "src/server/rooms.zig",
     }) |testPath| {
