@@ -316,7 +316,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                     const color = pixels[pos];
                     return NetAction{ .color_change = color };
                 },
-                else => log.info("key pressed: {}", .{key}),
+                else => {},
             }
         },
         c.SDL_KEYUP => {},
@@ -405,7 +405,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                     fullRender(world);
                 },
                 c.SDL_WINDOWEVENT_EXPOSED => {},
-                else => log.debug("window event {}", .{event.window.event}),
+                else => {},
             }
         },
         c.SDL_SYSWMEVENT => log.debug("syswm event {}", .{event}),
