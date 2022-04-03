@@ -10,10 +10,12 @@ const Surfaces = @import("index.zig").Surfaces;
 const Dimensions = @import("index.zig").Dimensions;
 const draw = @import("draw.zig");
 const header = @import("header.zig");
+const footer = @import("footer.zig");
 
 pub const Event = union(enum) {
     tool_change: Tool,
     tool_resize_slider: f16,
+    tool_recolor: u32,
 };
 
 const GuiElement = enum { header, footer, left, right };
@@ -45,7 +47,8 @@ pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, user: *const User, 
         },
         .footer => {
             const newY = pos.y - (parent.h - s.footer.h);
-            log.debug("footer {}x{}", .{ pos.x, newY });
+            const mid = @divFloor((parent.w - s.footer.w), 2);
+            return handleFooterPress(.{ .x = pos.x - mid, .y = newY }, user.color);
         },
         .left => {
             const newY = pos.y - s.header.h;
@@ -68,6 +71,13 @@ pub fn handleMotion(parent: *sdl.Surface, s: *Surfaces, user: *const User, click
             if (clicking) {
                 const mid = @divFloor((parent.w - s.header.w), 2);
                 return handleHeaderPress(pos.x - mid, user.tool, user.size);
+            }
+        },
+        .footer => {
+            if (clicking) {
+                const mid = @divFloor((parent.w - s.footer.w), 2);
+                const newY = pos.y - (parent.h - s.footer.h);
+                return handleFooterPress(.{ .x = pos.x - mid, .y = newY }, user.color);
             }
         },
         else => {},
@@ -102,6 +112,37 @@ fn handleHeaderPress(x: c_int, tool: Tool, toolSize: u8) ?Event {
             break;
         }
         startPos += w + header.elementGap;
+    }
+    return null;
+}
+
+fn handleFooterPress(pos: Dot, userColor: u32) ?Event {
+    if (pos.x < 0 or pos.y < 0) return null;
+    if (footer.geometry.selectedElement(.{ .x = @intCast(u16, pos.x), .y = @intCast(u16, pos.y) })) |ep| {
+        switch (ep.element) {
+            .color_sliders => {
+                const clickY = pos.y - ep.pos.y;
+                if (clickY < 0) {
+                    log.err("Unexpected footer position calculation error. Pos: {} | Expected Selected Element: {}. {}-{}={}", .{ pos, ep, pos.y, ep.pos.y, clickY });
+                    return null;
+                }
+                var whichSlider = @intCast(u32, @divFloor(clickY, footer.sliderHeight));
+                // Don't register clicks that reside clearly between two sliders and on neither.
+                if (@rem(clickY, footer.sliderHeight) > footer.sliderHeight - (footer.sliderHeight / 3)) {
+                    return null;
+                }
+                const clicked = pos.x - ep.pos.x;
+                if (footer.ColorSlider.clickedWhere(@intCast(u16, clicked))) |p| {
+                    // Determine the new value of the color based off the position of the slider.
+                    var newSingleColor = @floatToInt(u8, p * std.math.maxInt(u8));
+                    var newColor = userColor;
+                    // Replace either R, G, or B with the newly selected color.
+                    @ptrCast(*[4]u8, &newColor)[2 - whichSlider] = newSingleColor;
+                    return Event{ .tool_recolor = newColor };
+                } else return null;
+            },
+            .color_display => return null,
+        }
     }
     return null;
 }

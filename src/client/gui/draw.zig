@@ -15,6 +15,7 @@ const widgets = @import("widgets.zig");
 const Surfaces = @import("index.zig").Surfaces;
 const Dimensions = @import("index.zig").Dimensions;
 const header_info = @import("header.zig");
+const footer_info = @import("footer.zig");
 const text = @import("font.zig");
 
 pub const toolHeight = 30;
@@ -72,8 +73,30 @@ pub const Draw = struct {
         }
     }
 
-    fn footer(surface: *Surface) void {
+    pub fn footer(surface: *Surface, userColor: u32) void {
         fillBg(surface);
+
+        for (footer_info.geometry.layout()) |i| {
+            switch (i.element) {
+                .color_sliders => {
+                    draw_color_sliders(surface, userColor, .{ .x = i.pos.x, .y = i.pos.y });
+                },
+                .color_display => {
+                    const elSize = footer_info.geometry.elementSize(i.element);
+                    const start = Dot{ .x = i.pos.x, .y = i.pos.y };
+                    const end = Dot{ .x = i.pos.x + elSize.x, .y = i.pos.y + elSize.y };
+                    surface_draw.rectangleFilled(start, end, widgets.Colors.bg_shadow, surface);
+                    surface_draw.circleFilled(.{ .x = start.x + @divFloor(elSize.x, 2), .y = start.y + @divFloor(elSize.y, 2) }, (elSize.x / 2) - 5, userColor, surface);
+
+                    // var buffer: [10]u8 = undefined;
+                    // var fbs = std.io.fixedBufferStream(&buffer);
+                    // std.fmt.formatIntValue(userColor, "x", .{}, fbs.writer()) catch @panic("x");
+                    // var colorString = fbs.getWritten();
+                    // if (colorString.len == 8) colorString = colorString[2..]; // remove alpha info because we don't use alpha yet
+                    // text.write(surface, colorString, .{ .x = start.x, .y = end.y + 4 }, 2, widgets.Colors.text, 300);
+                },
+            }
+        }
     }
 
     /// Draw the left GUI bar, which contains tool icons.
@@ -131,14 +154,42 @@ pub const Draw = struct {
     /// Draws all GUI elements
     pub fn all(gui_s: *Surfaces, peers: *Peers, localUser: *const User) void {
         header(gui_s.header, localUser);
-        footer(gui_s.footer);
+        footer(gui_s.footer, localUser.color);
         left(gui_s.left, gui_s.images, localUser.tool);
         right(gui_s.right, gui_s.images, peers);
     }
 };
 
+fn draw_color_sliders(surface: *Surface, color: u32, start: Dot) void {
+    var buffer: [10]u8 = undefined;
+    var indexes: u8 = 3;
+    var index: u8 = 0;
+    const colorArray = @ptrCast(*const [4]u8, &color);
+
+    var slider = footer_info.ColorSlider;
+    slider.colors = widgets.Colors;
+
+    while (index < indexes) : (index += 1) {
+        const singleColor = colorArray[2 - index];
+        if (index == 0) {
+            slider.colors.?.primary = c.SDL_MapRGB(surface.format, singleColor, 0, 0);
+        } else if (index == 1) {
+            slider.colors.?.primary = c.SDL_MapRGB(surface.format, 0, singleColor, 0);
+        } else if (index == 2) {
+            slider.colors.?.primary = c.SDL_MapRGB(surface.format, 0, 0, singleColor);
+        }
+        const pos = Dot{ .x = start.x, .y = start.y + slider.radius + (index * footer_info.sliderHeight) };
+
+        const percentage = @intToFloat(f16, singleColor) / std.math.maxInt(u8);
+        slider.draw(surface, pos, percentage, 3, .horizontal);
+
+        const valueStr = text.intToString(singleColor, buffer[0..]) catch unreachable;
+        slider.drawString(surface, valueStr, 2, pos);
+    }
+}
+
 fn fillBg(surface: *Surface) void {
-    fillRect(surface, null, elements.Colors.background);
+    fillRect(surface, null, widgets.Colors.background);
 }
 
 /// A collection of surfaces with our GUI images painted on them.

@@ -339,7 +339,10 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                             const new = gui.header_info.ToolSize.applySlideEvent(TOOL_RESIZE_T, percent, world.user.size, std.math.maxInt(TOOL_RESIZE_T));
                             return NetAction{ .tool_resize = std.math.max(1, new) };
                         },
-                        else => {},
+                        .tool_recolor => |color| {
+                            return NetAction{ .color_change = color };
+                        },
+                        .tool_change => |_| unreachable,
                     }
                 }
             }
@@ -361,6 +364,9 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                             const TOOL_RESIZE_T: type = std.meta.TagPayload(NetAction, .tool_resize);
                             const new = gui.header_info.ToolSize.applySlideEvent(TOOL_RESIZE_T, percent, world.user.size, std.math.maxInt(TOOL_RESIZE_T));
                             return NetAction{ .tool_resize = std.math.max(1, new) };
+                        },
+                        .tool_recolor => |color| {
+                            return NetAction{ .color_change = color };
                         },
                     }
                 }
@@ -456,6 +462,7 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
             user.color = color;
             if (!fromNet) {
                 gui.updateHeader(world);
+                gui.updateFooter(world);
             }
         },
         .layer_switch => |x| {
