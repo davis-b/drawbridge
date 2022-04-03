@@ -1,6 +1,8 @@
 // Designed to be compiled with zig version 0.8.0
 
-const Builder = @import("std").build.Builder;
+const std = @import("std");
+const print = std.debug.print;
+const Builder = std.build.Builder;
 
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
@@ -8,6 +10,8 @@ pub fn build(b: *Builder) void {
         .{ "drawbridge", "src/client/main.zig" },
         .{ "drawbridge-server", "src/server/main.zig" },
     };
+
+    const windows = b.option(bool, "windows", "create windows build") orelse false;
 
     inline for (executables) |i| {
         const exe = b.addExecutable(i[0], i[1]);
@@ -17,10 +21,21 @@ pub fn build(b: *Builder) void {
 
         // Client only
         if (i[0].len == "drawbridge".len) {
+            if (windows) {
+                print("Building for windows!\n", .{});
+                const target = std.Target{
+                    .cpu = std.Target.current.cpu,
+                    .os = std.Target.Os.Tag.defaultVersionRange(.windows),
+                    .abi = .gnu,
+                };
+                const ct = std.zig.CrossTarget.fromTarget(target);
+                exe.setTarget(ct);
+                exe.addLibPath("dependencies/SDL2_windows_dev");
+            }
+
             exe.addPackagePath("client", "src/client/index.zig");
             const lib_cflags = [_][]const u8{"-std=c99"};
             exe.addCSourceFile("src/client/setpixel.c", lib_cflags[0..]);
-            // exe.addIncludeDir("src/");
             exe.addIncludeDir("/usr/include/SDL2/");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("SDL2");

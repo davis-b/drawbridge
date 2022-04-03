@@ -30,7 +30,7 @@ pub const ThreadContext = struct {
 
 /// Initializes a connection with the server.
 pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16) !mot.Connection {
-    const addr = try std.net.Address.resolveIp(ip, port);
+    const addr = try std.net.Address.parseIp(ip, port);
     var client = try connect(allocator, addr);
     return client;
 }
