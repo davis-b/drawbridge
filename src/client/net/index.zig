@@ -30,7 +30,7 @@ pub const ThreadContext = struct {
 
 /// Initializes a connection with the server.
 pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16) !mot.Connection {
-    const addr = try std.net.Address.resolveIp(ip, port);
+    const addr = try std.net.Address.parseIp(ip, port);
     var client = try connect(allocator, addr);
     return client;
 }
@@ -44,13 +44,40 @@ pub fn startThreads(allocator: *std.mem.Allocator, pipe: *Pipe, client: *mot.Con
 
 pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connection {
     // connect to server
-    const stream = try std.net.tcpConnectToAddress(addr);
+    const stream = blk: {
+        if (std.builtin.os.tag == .windows) {
+            // Windows requires this workaround instead of a simple tcpConnectToAddress()
+            // because there is currently no way to pass WSA_FLAG_OVERLAPPED to that function.
+            // This block does the same work as that function, just with that flag included.
+            // The OVERLAPPED flag allows us to simultaneously read and write from a socket,
+            // which is neccessary for our use case.
+            // Note that the OVERLAPPED flag resides within the async world of Windows.
+            // It is for that reason that we need to work around the zig std library here,
+            // as our program is not async.
+            const ws = std.os.windows.ws2_32;
+            _ = try std.os.windows.WSAStartup(2, 2);
+            const socket = ws.WSASocketW(
+                ws.AF_INET,
+                ws.SOCK_STREAM,
+                ws.IPPROTO_TCP,
+                null,
+                0,
+                ws.WSA_FLAG_OVERLAPPED | ws.WSA_FLAG_NO_HANDLE_INHERIT,
+            );
+            errdefer std.os.close(socket);
+            try std.os.connect(socket, &addr.any, addr.getOsSockLen());
+            break :blk std.net.Stream{ .handle = socket };
+        } else {
+            break :blk try std.net.tcpConnectToAddress(addr);
+        }
+    };
 
     // create mot client
     var client = mot.Connection.init_from_stream(allocator, stream) catch |err| {
         stream.close();
         return err;
     };
+    if (std.builtin.os.tag == .windows) client.windows_overlapped_flag = true;
     return client;
 }
 
