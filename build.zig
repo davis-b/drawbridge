@@ -30,15 +30,29 @@ pub fn build(b: *Builder) void {
                 };
                 const ct = std.zig.CrossTarget.fromTarget(target);
                 exe.setTarget(ct);
-                exe.addLibPath("dependencies/SDL2_windows_dev");
+                const static = true;
+                if (static) {
+                    exe.addObjectFile("dependencies/SDL2_windows_dev/static/libSDL2.a");
+                    exe.linkSystemLibrary("setupapi");
+                    exe.linkSystemLibrary("winmm");
+                    exe.linkSystemLibrary("gdi32");
+                    exe.linkSystemLibrary("imm32");
+                    exe.linkSystemLibrary("version");
+                    exe.linkSystemLibrary("oleaut32");
+                    exe.linkSystemLibrary("ole32");
+                } else {
+                    exe.addLibPath("dependencies/SDL2_windows_dev/dynamic");
+                    exe.linkSystemLibrary("SDL2");
+                }
+            } else {
+                exe.linkSystemLibrary("SDL2");
             }
+            exe.addIncludeDir("/usr/include/SDL2/");
 
             exe.addPackagePath("client", "src/client/index.zig");
             const lib_cflags = [_][]const u8{"-std=c99"};
             exe.addCSourceFile("src/client/setpixel.c", lib_cflags[0..]);
-            exe.addIncludeDir("/usr/include/SDL2/");
             exe.linkSystemLibrary("c");
-            exe.linkSystemLibrary("SDL2");
 
             const run_cmd = exe.run();
 
