@@ -448,22 +448,38 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
             }
         },
         .cursor_move => |move| {
-            if (user.drawing) {
-                tools.pencil(move.pos.x, move.pos.y, move.delta.x, move.delta.y, user, world.image.surface);
-            } else {
-                // Preview what would happen if the user started drawing.
-                // TODO add a layer that allows temporary stuff like this to appear at all.
-                // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
-                // Currently the image blits on top of this and removes it.
-                // or do something like this:
-                // tools.pencil(move.pos.x, move.pos.y, 0, 0, user, world.surface);
+            switch (user.tool) {
+                .pencil => {
+                    if (user.drawing) {
+                        tools.pencil(move.pos, move.delta.x, move.delta.y, user, world.image.surface);
+                    } else {
+                        // Preview what would happen if the user started drawing.
+                        // TODO add a layer that allows temporary stuff like this to appear at all.
+                        // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
+                        // Currently the image blits on top of this and removes it.
+                        // or do something like this:
+                        // tools.pencil(move.pos.x, move.pos.y, 0, 0, user, world.surface);
+                    }
+                },
+                .eraser => {},
+                .bucket, .color_picker => {},
             }
         },
         .mouse_press => |click| {
             user.drawing = true;
             const x = click.pos.x;
             const y = click.pos.y;
-            tools.pencil(x, y, 0, 0, user, world.image.surface);
+            switch (user.tool) {
+                .pencil => tools.pencil(click.pos, 0, 0, user, world.image.surface),
+                .eraser => {},
+                .bucket => {},
+                .color_picker => return doAction(
+                    NetAction{ .color_change = tools.color_picker(click.pos, world.image.surface) },
+                    user,
+                    world,
+                    fromNet,
+                ),
+            }
             // if (click.button != 1) { // != LMB
             //     draw.line2(x, x - user.lastX, y, y - user.lastY, user, world.image.surface) catch unreachable;
             // }

@@ -11,11 +11,11 @@ pub const Tool = enum(u8) {
     color_picker,
 };
 
-pub fn pencil(x: c_int, y: c_int, deltaX: c_int, deltaY: c_int, user: *User, surface: *c.SDL_Surface) void {
+pub fn pencil(pos: Dot, deltaX: c_int, deltaY: c_int, user: *User, surface: *c.SDL_Surface) void {
     draw.Rectangle.h = user.size;
     draw.Rectangle.w = user.size;
-    draw.putRectangle(x, y, user.color, surface);
-    draw.line(x, deltaX, y, deltaY, user.color, surface) catch unreachable;
+    draw.putRectangle(pos.x, pos.y, user.color, surface);
+    draw.line(pos.x, deltaX, pos.y, deltaY, user.color, surface) catch unreachable;
 }
 
 pub fn eraser(x: c_int, y: c_int, deltaX: c_int, deltaY: c_int, color: u32, surface: *c.SDL_Surface) void {
@@ -23,6 +23,14 @@ pub fn eraser(x: c_int, y: c_int, deltaX: c_int, deltaY: c_int, color: u32, surf
 }
 
 pub fn bucket(x: c_int, y: c_int, color: u32, surface: *c.SDL_Surface) void {}
+
+pub fn color_picker(pos: Dot, surface: *c.SDL_Surface) u32 {
+    const cPixels = @alignCast(4, surface.pixels.?);
+    const pixels = @ptrCast([*]u32, cPixels);
+    const flatPos = @intCast(usize, (pos.y * surface.w) + pos.x);
+    const color = pixels[flatPos];
+    return color;
+}
 
 pub fn rectangle(start: Dot, end: Dot, user: *User, surface: *c.SDL_Surface) void {
     draw.rectangle(start, end, user.color, user.size, surface);
