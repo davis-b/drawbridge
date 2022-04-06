@@ -15,7 +15,7 @@ pub const Whiteboard = struct {
     crop_offset: misc.Dot,
 
     pub fn init(parent: *sdl.Surface, gui_surfaces: *gui.Surfaces, width: c_int, height: c_int) !Whiteboard {
-        const surface = try sdl.display.initRgbSurface(0, width, height, 24);
+        const surface = try sdl.display.initRgbSurface(0, width, height, 32);
         return Whiteboard{
             .surface = surface,
             .render_area = getRenderArea(parent, surface, gui_surfaces),

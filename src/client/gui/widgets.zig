@@ -8,12 +8,12 @@ const Dot = @import("../misc.zig").Dot;
 const text = @import("font.zig");
 
 const Colors_ = struct {
-    primary: u32 = 0x9a77ba,
-    secondary: u32 = 0x554453,
-    highlight: u32 = 0xbb77bb,
-    bg_shadow: u32 = 0x030f2b,
-    background: u32 = 0x142238,
-    text: u32 = 0xffffff,
+    primary: u32 = 0x9a77baff,
+    secondary: u32 = 0x554453ff,
+    highlight: u32 = 0xbb77bbff,
+    bg_shadow: u32 = 0x030f2bff,
+    background: u32 = 0x142238ff,
+    text: u32 = 0xffffffff,
 };
 pub var Colors = Colors_{};
 

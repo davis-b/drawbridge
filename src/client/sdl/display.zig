@@ -1,3 +1,4 @@
+const std = @import("std");
 const misc = @import("misc.zig");
 const c = @import("client").c;
 
@@ -32,7 +33,12 @@ pub fn getWindowSurface(window: *c.SDL_Window) !*c.SDL_Surface {
 }
 
 pub fn initRgbSurface(flags: u32, w: c_int, h: c_int, depth: c_int) !*c.SDL_Surface {
-    return c.SDL_CreateRGBSurface(flags, w, h, depth, 0, 0, 0, 0) orelse {
+    const endian = std.Target.current.cpu.arch.endian();
+    const masks = switch (endian) {
+        .Little => [4]u32{ 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff },
+        .Big => [4]u32{ 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 },
+    };
+    return c.SDL_CreateRGBSurface(flags, w, h, depth, masks[0], masks[1], masks[2], masks[3]) orelse {
         c.SDL_Log("Unable to get window surface: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
@@ -62,4 +68,17 @@ pub fn blitScaled(src: *c.SDL_Surface, src_rect: ?*c.SDL_Rect, dst: *c.SDL_Surfa
 pub fn fillRect(surface: *c.SDL_Surface, rect: ?*const c.SDL_Rect, color: u32) void {
     const result = c.SDL_FillRect(surface, rect, color);
     if (result != 0) @panic("Error filling rectangle!\n");
+}
+
+pub fn getRGBA(pixel: u32, format: *c.SDL_PixelFormat) [4]u8 {
+    var r: u8 = undefined;
+    var g: u8 = undefined;
+    var b: u8 = undefined;
+    var a: u8 = undefined;
+    c.SDL_GetRGBA(pixel, format, &r, &g, &b, &a);
+    return [4]u8{ r, g, b, a };
+}
+
+pub fn mapRGBA(rgba: [4]u8, format: *c.SDL_PixelFormat) u32 {
+    return c.SDL_MapRGBA(format, rgba[0], rgba[1], rgba[2], rgba[3]);
 }

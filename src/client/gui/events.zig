@@ -39,7 +39,7 @@ fn mouseIsWhere(parent: *sdl.Surface, s: *Surfaces, pos: Dot) ?GuiElement {
 /// We layer our button handling to match the visual layering, where the last blitted item will appear above lower ones.
 /// For instance, the left side bar starts at y0, however it is not visible until y + (header height), therefore
 /// clicks should adjust their y position by the header's height.
-pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, user: *const User, pos: Dot) ?Event {
+pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, user: *const User, pos: Dot, fmt: *sdl.pixelFormat) ?Event {
     switch (mouseIsWhere(parent, s, pos) orelse return null) {
         .header => {
             const mid = @divFloor((parent.w - s.header.w), 2);
@@ -48,7 +48,7 @@ pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, user: *const User, 
         .footer => {
             const newY = pos.y - (parent.h - s.footer.h);
             const mid = @divFloor((parent.w - s.footer.w), 2);
-            return handleFooterPress(.{ .x = pos.x - mid, .y = newY }, user.color);
+            return handleFooterPress(.{ .x = pos.x - mid, .y = newY }, user.color, fmt);
         },
         .left => {
             const newY = pos.y - s.header.h;
@@ -64,7 +64,7 @@ pub fn handleButtonPress(parent: *sdl.Surface, s: *Surfaces, user: *const User, 
     return null;
 }
 
-pub fn handleMotion(parent: *sdl.Surface, s: *Surfaces, user: *const User, clicking: bool, pos: Dot, delta: Dot) ?Event {
+pub fn handleMotion(parent: *sdl.Surface, s: *Surfaces, user: *const User, clicking: bool, pos: Dot, delta: Dot, fmt: *sdl.pixelFormat) ?Event {
     const where = mouseIsWhere(parent, s, pos) orelse return null;
     switch (where) {
         .header => {
@@ -77,7 +77,7 @@ pub fn handleMotion(parent: *sdl.Surface, s: *Surfaces, user: *const User, click
             if (clicking) {
                 const mid = @divFloor((parent.w - s.footer.w), 2);
                 const newY = pos.y - (parent.h - s.footer.h);
-                return handleFooterPress(.{ .x = pos.x - mid, .y = newY }, user.color);
+                return handleFooterPress(.{ .x = pos.x - mid, .y = newY }, user.color, fmt);
             }
         },
         else => {},
@@ -116,7 +116,7 @@ fn handleHeaderPress(x: c_int, tool: Tool, toolSize: u8) ?Event {
     return null;
 }
 
-fn handleFooterPress(pos: Dot, userColor: u32) ?Event {
+fn handleFooterPress(pos: Dot, userColor: u32, pixelFormat: *sdl.pixelFormat) ?Event {
     if (pos.x < 0 or pos.y < 0) return null;
     if (footer.geometry.selectedElement(.{ .x = @intCast(u16, pos.x), .y = @intCast(u16, pos.y) })) |ep| {
         switch (ep.element) {
@@ -127,6 +127,7 @@ fn handleFooterPress(pos: Dot, userColor: u32) ?Event {
                     return null;
                 }
                 var whichSlider = @intCast(u32, @divFloor(clickY, footer.sliderHeight));
+                if (whichSlider > footer.sliderCount) return null;
                 // Don't register clicks that reside clearly between two sliders and on neither.
                 if (@rem(clickY, footer.sliderHeight) > footer.sliderHeight - (footer.sliderHeight / 3)) {
                     return null;
@@ -135,10 +136,11 @@ fn handleFooterPress(pos: Dot, userColor: u32) ?Event {
                 if (footer.ColorSlider.clickedWhere(@intCast(u16, clicked))) |p| {
                     // Determine the new value of the color based off the position of the slider.
                     var newSingleColor = @floatToInt(u8, p * std.math.maxInt(u8));
-                    var newColor = userColor;
                     // Replace either R, G, or B with the newly selected color.
-                    @ptrCast(*[4]u8, &newColor)[2 - whichSlider] = newSingleColor;
-                    return Event{ .tool_recolor = newColor };
+                    // @ptrCast(*[4]u8, &newColor)[3 - whichSlider] = newSingleColor;
+                    var rgba = sdl.display.getRGBA(userColor, pixelFormat);
+                    rgba[whichSlider] = newSingleColor;
+                    return Event{ .tool_recolor = sdl.display.mapRGBA(rgba, pixelFormat) };
                 } else return null;
             },
             .color_display => return null,

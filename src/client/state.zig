@@ -9,7 +9,7 @@ pub const World = struct {
     window: *c.SDL_Window,
     surface: *c.SDL_Surface,
     gui: *gui.Surfaces,
-    bgColor: u32 = 0x090909,
+    bgColor: u32,
     image: *Whiteboard,
     peers: *users.Peers,
     user: *users.User,

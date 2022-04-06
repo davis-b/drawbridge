@@ -52,7 +52,8 @@ pub fn main() !void {
     const image_width = 1300;
     const image_height = 800;
     var whiteboard = try Whiteboard.init(surface, &gui_surfaces, image_width, image_height);
-    var bgColor: u32 = c.SDL_MapRGB(whiteboard.surface.format, 40, 40, 40);
+    sdl.display.fillRect(whiteboard.surface, null, sdl.display.mapRGBA(.{ 30, 30, 40, 255 }, whiteboard.surface.format));
+    var bgColor: u32 = sdl.display.mapRGBA(.{ 30, 30, 50, 255 }, surface.format);
 
     var running = true;
     var localUser = users.User{};
@@ -313,8 +314,8 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                     const cPixels = @alignCast(4, world.surface.pixels.?);
                     const pixels = @ptrCast([*]u32, cPixels);
                     const pos = getMousePos(world.surface.w);
-                    const color = pixels[pos];
-                    return NetAction{ .color_change = color };
+                    const rgba = sdl.display.getRGBA(pixels[pos], world.surface.format);
+                    return NetAction{ .color_change = sdl.display.mapRGBA(rgba, world.image.surface.format) };
                 },
                 else => {},
             }
@@ -331,7 +332,15 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                 const pos = Dot{ .x = event.motion.x, .y = event.motion.y };
                 const delta = Dot{ .x = event.motion.xrel, .y = event.motion.yrel };
                 const clicking = (event.motion.state & c.SDL_BUTTON_LMASK) != 0;
-                const guiEvent = gui.events.handleMotion(world.surface, world.gui, world.user, clicking, pos, delta);
+                const guiEvent = gui.events.handleMotion(
+                    world.surface,
+                    world.gui,
+                    world.user,
+                    clicking,
+                    pos,
+                    delta,
+                    world.image.surface.format,
+                );
                 if (guiEvent) |ge| {
                     switch (ge) {
                         .tool_resize_slider => |percent| {
@@ -354,7 +363,13 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
                 return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
             } else {
-                const guiEvent = gui.events.handleButtonPress(world.surface, world.gui, world.user, .{ .x = event.button.x, .y = event.button.y });
+                const guiEvent = gui.events.handleButtonPress(
+                    world.surface,
+                    world.gui,
+                    world.user,
+                    .{ .x = event.button.x, .y = event.button.y },
+                    world.image.surface.format,
+                );
                 if (guiEvent) |ge| {
                     switch (ge) {
                         .tool_change => |tool| {

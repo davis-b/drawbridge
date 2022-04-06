@@ -57,8 +57,8 @@ pub const Draw = struct {
                 .color => {
                     const end = Dot{ .x = x + len, .y = y + 10 };
                     const start = Dot{ .x = x, .y = y - 10 };
-                    surface_draw.rectangleFilled(start, end, 0x444477, surface);
-                    surface_draw.rectangle(start, end, 0x333355, 1, surface);
+                    surface_draw.rectangleFilled(start, end, 0x444477ff, surface);
+                    surface_draw.rectangle(start, end, 0x333355ff, 1, surface);
                     surface_draw.circleFilled(.{ .x = pos.x + @divFloor(len, 2), .y = pos.y }, 7, user.color, surface);
 
                     var buffer: [10]u8 = undefined;
@@ -107,7 +107,7 @@ pub const Draw = struct {
         for (images.tools) |image, index| {
             if (@enumToInt(activeTool) == index) {
                 // Draw box around selected tool.
-                // surface_draw.rectangle(.{ .x = 3, .y = paintOffsets.y }, .{ .x = toolWidth + 3, .y = paintOffsets.y + toolHeight }, 0x777777, 2, surface);
+                // surface_draw.rectangle(.{ .x = 3, .y = paintOffsets.y }, .{ .x = toolWidth + 3, .y = paintOffsets.y + toolHeight }, 0x777777ff, 2, surface);
                 // Indent area around the selected tool.
                 surface_draw.rectangleFilled(
                     .{ .x = 3, .y = paintOffsets.y },
@@ -124,9 +124,10 @@ pub const Draw = struct {
     /// Draw the right GUI bar, which contains peer information.
     pub fn right(surface: *Surface, images: Images, peers: *Peers) void {
         fillBg(surface);
-        const active = 0x349847;
-        const idle = 0x777734;
-        const inactive = 0x982734;
+
+        const active = sdl.display.mapRGBA(.{ 52, 152, 71, 255 }, surface.format); // 0x349847ff;
+        const idle = sdl.display.mapRGBA(.{ 119, 119, 52, 255 }, surface.format); // 0x777734ff;
+        const inactive = sdl.display.mapRGBA(.{ 152, 39, 52, 255 }, surface.format); // 0x982734ff;
 
         var paintOffsets = c.SDL_Rect{ .x = 5, .y = toolStartY, .w = peerToolWidth, .h = peerToolHeight };
         var iter = peers.iterator();
@@ -162,22 +163,23 @@ pub const Draw = struct {
 
 fn draw_color_sliders(surface: *Surface, color: u32, start: Dot) void {
     var buffer: [10]u8 = undefined;
-    var indexes: u8 = 3;
+    var indexes: u8 = footer_info.sliderCount;
     var index: u8 = 0;
-    const colorArray = @ptrCast(*const [4]u8, &color);
+
+    const colorArray = sdl.display.getRGBA(color, surface.format);
 
     var slider = footer_info.ColorSlider;
     slider.colors = widgets.Colors;
 
     while (index < indexes) : (index += 1) {
-        const singleColor = colorArray[2 - index];
+        const singleColor = colorArray[index];
         if (index == 0) {
-            slider.colors.?.primary = c.SDL_MapRGB(surface.format, singleColor, 0, 0);
+            slider.colors.?.primary = c.SDL_MapRGBA(surface.format, singleColor, 0, 0, 255);
         } else if (index == 1) {
-            slider.colors.?.primary = c.SDL_MapRGB(surface.format, 0, singleColor, 0);
+            slider.colors.?.primary = c.SDL_MapRGBA(surface.format, 0, singleColor, 0, 255);
         } else if (index == 2) {
-            slider.colors.?.primary = c.SDL_MapRGB(surface.format, 0, 0, singleColor);
-        }
+            slider.colors.?.primary = c.SDL_MapRGBA(surface.format, 0, 0, singleColor, 255);
+        } else unreachable;
         const pos = Dot{ .x = start.x, .y = start.y + slider.radius + (index * footer_info.sliderHeight) };
 
         const percentage = @intToFloat(f16, singleColor) / std.math.maxInt(u8);
