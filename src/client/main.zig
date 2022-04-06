@@ -46,7 +46,7 @@ pub fn main() !void {
     const window = try sdl.display.initWindow(1500, 1000);
     defer c.SDL_DestroyWindow(window);
 
-    const surface = try sdl.display.initSurface(window);
+    const surface = try sdl.display.getWindowSurface(window);
     var gui_surfaces = try gui.init();
 
     const image_width = 1300;
@@ -400,7 +400,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                 c.SDL_WINDOWEVENT_RESIZED => {}, // Subset of size_changed event. Does not get triggered if resize originated from SDL code.
                 c.SDL_WINDOWEVENT_SIZE_CHANGED => {
                     log.debug("window resized {}x{}", .{ e.data1, e.data2 });
-                    world.surface = sdl.display.initSurface(world.window) catch unreachable;
+                    world.surface = sdl.display.getWindowSurface(world.window) catch unreachable;
                     world.image.updateOnParentResize(world.surface, world.gui);
                     fullRender(world);
                 },

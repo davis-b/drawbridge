@@ -23,7 +23,7 @@ pub fn initWindow(width: c_int, height: c_int) !*c.SDL_Window {
     return window;
 }
 
-pub fn initSurface(window: *c.SDL_Window) !*c.SDL_Surface {
+pub fn getWindowSurface(window: *c.SDL_Window) !*c.SDL_Surface {
     const surface: *c.SDL_Surface = SDL_GetWindowSurface(window) orelse {
         c.SDL_Log("Unable to get window surface: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
