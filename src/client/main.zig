@@ -311,10 +311,10 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                 .Q => running.* = false,
                 .A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, @intCast(u64, std.time.milliTimestamp()))),
 
-                .N_1 => world.image.modifyCropOffset(-20, null),
-                .N_2 => world.image.modifyCropOffset(20, null),
-                .N_3 => world.image.modifyCropOffset(null, -20),
-                .N_4 => world.image.modifyCropOffset(null, 20),
+                .N_7 => world.image.modifyCropOffset(-20, null),
+                .N_8 => world.image.modifyCropOffset(20, null),
+                .N_9 => world.image.modifyCropOffset(null, -20),
+                .N_0 => world.image.modifyCropOffset(null, 20),
 
                 .C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
@@ -323,6 +323,11 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                     const rgba = sdl.display.getRGBA(pixels[pos], world.surface.format);
                     return NetAction{ .color_change = sdl.display.mapRGBA(rgba, world.image.surface.format) };
                 },
+
+                .B, .W, .N_1 => return NetAction{ .tool_change = .pencil },
+                .E, .N_2 => return NetAction{ .tool_change = .eraser },
+                .G, .N_3 => return NetAction{ .tool_change = .bucket },
+                .N_4 => return NetAction{ .tool_change = .color_picker },
                 else => {},
             }
         },
