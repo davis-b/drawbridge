@@ -136,11 +136,17 @@ pub fn main() !void {
                 netConnection.deinit();
             }
         }
+        var lastPeerUpdate: i64 = 0;
         while (running) {
+            const start = std.time.milliTimestamp();
+            defer {
+                if (start > lastPeerUpdate + 500) {
+                    gui.updatePeers(&world);
+                    lastPeerUpdate = start;
+                }
+            }
             renderImage(world.surface, world.image);
             sdl.display.updateSurface(world.window);
-            // TODO Only do this 1 or 2 times per second
-            gui.updatePeers(&world);
 
             while (c.SDL_PollEvent(&event) == 1) {
                 const maybe_action = onEvent(event, &world, world.user, &running);
