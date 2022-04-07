@@ -7,20 +7,18 @@ const c = @import("c.zig");
 
 pub const Tool = enum(u8) {
     pencil,
+    // Currently this tool only acts as a pencil with the color as a static 'background' color.
+    // If/when we implement layers, we could have this tool set areas to be transparent.
     eraser,
     bucket,
     color_picker,
 };
 
-pub fn pencil(pos: Dot, deltaX: c_int, deltaY: c_int, user: *User, surface: *c.SDL_Surface) void {
-    draw.Rectangle.h = user.size;
-    draw.Rectangle.w = user.size;
-    draw.putRectangle(pos.x, pos.y, user.color, surface);
-    draw.line(pos.x, deltaX, pos.y, deltaY, user.color, surface) catch unreachable;
-}
-
-pub fn eraser(pos: Dot, delta: Dot, color: u32, surface: *c.SDL_Surface) void {
-    //
+pub fn pencil(pos: Dot, delta: Dot, size: u8, color: u32, surface: *c.SDL_Surface) void {
+    draw.Rectangle.h = size;
+    draw.Rectangle.w = size;
+    draw.putRectangle(pos.x, pos.y, color, surface);
+    draw.line(pos.x, delta.x, pos.y, delta.y, color, surface) catch unreachable;
 }
 
 pub fn bucket(pos: Dot, color: u32, surface: *c.SDL_Surface) void {

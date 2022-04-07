@@ -7,12 +7,17 @@ const misc = @import("misc.zig");
 
 /// Collection of data used to represent the area user(s) draw on
 pub const Whiteboard = struct {
-    // The actual image.
+    /// The actual image.
     surface: *sdl.Surface,
-    // The sub-area of the whole parent surface that we are allowed to render into, accounts for GUI
+
+    /// The sub-area of the whole parent surface that we are allowed to render into, accounts for GUI
     render_area: sdl.Rect,
-    // When we can only see a portion of the image, the start of the image gets pushed this much from 0, 0
+
+    /// When we can only see a portion of the image, the start of the image gets pushed this much from 0, 0
     crop_offset: misc.Dot,
+
+    /// The default background color.
+    bgColor: u32,
 
     pub fn init(parent: *sdl.Surface, gui_surfaces: *gui.Surfaces, width: c_int, height: c_int) !Whiteboard {
         const surface = try sdl.display.initRgbSurface(0, width, height, 32);
@@ -20,6 +25,7 @@ pub const Whiteboard = struct {
             .surface = surface,
             .render_area = getRenderArea(parent, surface, gui_surfaces),
             .crop_offset = .{ .x = 0, .y = 0 },
+            .bgColor = sdl.display.mapRGBA(.{ 30, 30, 40, 255 }, surface.format),
         };
     }
 

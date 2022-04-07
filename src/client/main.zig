@@ -52,7 +52,7 @@ pub fn main() !void {
     const image_width = 1300;
     const image_height = 800;
     var whiteboard = try Whiteboard.init(surface, &gui_surfaces, image_width, image_height);
-    sdl.display.fillRect(whiteboard.surface, null, sdl.display.mapRGBA(.{ 30, 30, 40, 255 }, whiteboard.surface.format));
+    sdl.display.fillRect(whiteboard.surface, null, whiteboard.bgColor);
     var bgColor: u32 = sdl.display.mapRGBA(.{ 30, 30, 50, 255 }, surface.format);
 
     var running = true;
@@ -457,7 +457,7 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
             switch (user.tool) {
                 .pencil => {
                     if (user.drawing) {
-                        tools.pencil(move.pos, move.delta.x, move.delta.y, user, world.image.surface);
+                        tools.pencil(move.pos, move.delta, user.size, user.color, world.image.surface);
                     } else {
                         // Preview what would happen if the user started drawing.
                         // TODO add a layer that allows temporary stuff like this to appear at all.
@@ -467,7 +467,10 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
                         // tools.pencil(move.pos.x, move.pos.y, 0, 0, user, world.surface);
                     }
                 },
-                .eraser => {},
+                .eraser => {
+                    const col = sdl.display.mapRGBA(.{ 30, 30, 40, 255 }, world.image.surface.format);
+                    if (user.drawing) tools.pencil(move.pos, move.delta, user.size, world.image.bgColor, world.image.surface);
+                },
                 .bucket, .color_picker => {},
             }
         },
@@ -476,8 +479,10 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
             const x = click.pos.x;
             const y = click.pos.y;
             switch (user.tool) {
-                .pencil => tools.pencil(click.pos, 0, 0, user, world.image.surface),
-                .eraser => {},
+                .pencil => tools.pencil(click.pos, .{ .x = 0, .y = 0 }, user.size, user.color, world.image.surface),
+                .eraser => {
+                    tools.pencil(click.pos, .{ .x = 0, .y = 0 }, user.size, world.image.bgColor, world.image.surface);
+                },
                 .bucket => {
                     tools.bucket(click.pos, user.color, world.image.surface);
                 },
