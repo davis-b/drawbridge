@@ -336,7 +336,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                     world.surface,
                     world.gui,
                     world.user,
-                    clicking,
+                    clicking and !world.user.drawing,
                     pos,
                     delta,
                     world.image.surface.format,
