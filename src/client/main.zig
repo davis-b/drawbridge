@@ -472,7 +472,9 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
             switch (user.tool) {
                 .pencil => tools.pencil(click.pos, 0, 0, user, world.image.surface),
                 .eraser => {},
-                .bucket => {},
+                .bucket => {
+                    tools.bucket(click.pos, user.color, world.image.surface);
+                },
                 .color_picker => return doAction(
                     NetAction{ .color_change = tools.color_picker(click.pos, world.image.surface) },
                     user,
