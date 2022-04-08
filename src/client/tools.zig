@@ -84,7 +84,6 @@ fn set(x: c_int, y: c_int, color: u32, pixels: [*]u32, surface: *c.SDL_Surface) 
     pixels[@intCast(usize, x + (y * surface.w))] = color;
 }
 
-
 /// Given a surface and a position within that surface, return
 /// a 4 byte pixel at that location.
 pub fn color_picker(pos: Dot, surface: *c.SDL_Surface) u32 {
