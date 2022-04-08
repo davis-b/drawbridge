@@ -224,15 +224,15 @@ pub fn thing(fgColor: u32, surface: *c.SDL_Surface) void {
 }
 
 pub fn squares(surface: *c.SDL_Surface) void {
-    var x: c_int = 300;
-    var y: c_int = 20;
     const size = 50;
     const step = size + 20;
     const colors = [_]u32{
-        0xff0000ff,
-        0x00ff00ff,
-        0x0000ffff,
+        0xaa2277ff,
+        0x117744ff,
+        0x1144a8ff,
     };
+    var x: c_int = @divFloor(surface.w, 2) - @divFloor(step * colors.len, 2);
+    var y: c_int = 30;
     var rect = c.SDL_Rect{ .x = 0, .y = 0, .h = 0, .w = 0 };
     for (colors) |color| {
         rect.x = x;
