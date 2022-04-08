@@ -75,7 +75,7 @@ pub fn main() !void {
     draw.squares(whiteboard.surface);
 
     // Set to true if network initialization fails.
-    var localOnly = false;
+    var localOnly = true;
     // All communication will happen through these queues.
     var netPipe = net.Pipe{};
     var netThreads: [2]*std.Thread = undefined;
@@ -84,7 +84,6 @@ pub fn main() !void {
     var fully_joined_room = false;
     if (options.ip) |ip| netSetupBlk: {
         netConnection = net.init(allocator, ip, options.port) catch {
-            localOnly = true;
             break :netSetupBlk;
         };
         errdefer netConnection.deinit();
@@ -93,7 +92,6 @@ pub fn main() !void {
         fully_joined_room = net.enter_room(allocator, &netConnection, options.room) catch |err| {
             switch (err) {
                 error.FullRoom => {
-                    localOnly = true;
                     break :netSetupBlk;
                 },
                 else => return err,
@@ -102,8 +100,7 @@ pub fn main() !void {
         // This will spawn a new thread which will take care of low level networking stuff.
         // If the networking thread finishes early, it will put a signal in the meta queue and wait for the queue to be emptied.
         netThreads = try net.startThreads(allocator, &netPipe, &netConnection);
-    } else {
-        localOnly = true;
+        localOnly = false;
     }
 
     var event: c.SDL_Event = undefined;
