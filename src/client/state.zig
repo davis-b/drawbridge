@@ -13,4 +13,8 @@ pub const World = struct {
     image: *Whiteboard,
     peers: *users.Peers,
     user: *users.User,
+
+    /// Flag to determine if the main loop should copy our drawing canvas onto our rendering surface.
+    /// Allows us to save CPU cycles if there is nothing new to copy.
+    shouldRender: bool = true,
 };

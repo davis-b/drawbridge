@@ -117,7 +117,10 @@ pub fn main() !void {
                 }
             }
 
-            renderImage(world.surface, world.image);
+            if (world.shouldRender) {
+                renderImage(world.surface, world.image);
+                world.shouldRender = false;
+            }
             sdl.display.updateSurface(world.window);
 
             while (c.SDL_PollEvent(&event) == 1) {
@@ -157,7 +160,10 @@ pub fn main() !void {
                     std.time.sleep(sleepTime * std.time.ns_per_ms);
                 }
             }
-            renderImage(world.surface, world.image);
+            if (world.shouldRender) {
+                renderImage(world.surface, world.image);
+                world.shouldRender = false;
+            }
             sdl.display.updateSurface(world.window);
 
             while (c.SDL_PollEvent(&event) == 1) {
@@ -313,10 +319,22 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
                 .Q => running.* = false,
                 .A => _ = c.SDL_FillRect(world.surface, null, @truncate(u32, @intCast(u64, std.time.milliTimestamp()))),
 
-                .N_7 => world.image.modifyCropOffset(-20, null),
-                .N_8 => world.image.modifyCropOffset(20, null),
-                .N_9 => world.image.modifyCropOffset(null, -20),
-                .N_0 => world.image.modifyCropOffset(null, 20),
+                .N_7 => {
+                    world.shouldRender = true;
+                    world.image.modifyCropOffset(-20, null);
+                },
+                .N_8 => {
+                    world.shouldRender = true;
+                    world.image.modifyCropOffset(20, null);
+                },
+                .N_9 => {
+                    world.shouldRender = true;
+                    world.image.modifyCropOffset(null, -20);
+                },
+                .N_0 => {
+                    world.shouldRender = true;
+                    world.image.modifyCropOffset(null, 20);
+                },
 
                 .C => {
                     const cPixels = @alignCast(4, world.surface.pixels.?);
@@ -341,6 +359,7 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             // Pan around a cropped image if we are holding the middle mouse button.
             if ((event.motion.state & c.SDL_BUTTON_MMASK) != 0) {
                 world.image.modifyCropOffset(-event.motion.xrel, -event.motion.yrel);
+                world.shouldRender = true;
                 return null;
             }
             if (coordinatesAreInImage(world.image.render_area, x, y)) {
@@ -477,19 +496,23 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
             switch (user.tool) {
                 .pencil => {
                     if (user.drawing) {
+                        world.shouldRender = true;
                         tools.pencil(move.pos, move.delta, user.size, user.color, world.image.surface);
                         user.lastX = move.pos.x;
                         user.lastY = move.pos.y;
                     }
                 },
                 .eraser => {
-                    const col = sdl.display.mapRGBA(.{ 30, 30, 40, 255 }, world.image.surface.format);
-                    if (user.drawing) tools.pencil(move.pos, move.delta, user.size, world.image.bgColor, world.image.surface);
+                    if (user.drawing) {
+                        world.shouldRender = true;
+                        tools.pencil(move.pos, move.delta, user.size, world.image.bgColor, world.image.surface);
+                    }
                 },
                 .bucket, .color_picker => {},
             }
         },
         .mouse_press => |click| {
+            world.shouldRender = true;
             user.drawing = true;
             const x = click.pos.x;
             const y = click.pos.y;
