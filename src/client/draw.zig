@@ -216,13 +216,6 @@ pub fn line2(xstart: c_int, xlength: c_int, ystart: c_int, ylength: c_int, color
     }
 }
 
-pub fn thing(fgColor: u32, surface: *c.SDL_Surface) void {
-    line2(280, -50, 280, -90, fgColor, surface) catch unreachable;
-    line2(320, 50, 320, 90, fgColor, surface) catch unreachable;
-    line2(280, -50, 320, 90, fgColor, surface) catch unreachable;
-    line2(320, 50, 280, -90, fgColor, surface) catch unreachable;
-}
-
 pub fn squares(surface: *c.SDL_Surface) void {
     const size = 50;
     const step = size + 20;

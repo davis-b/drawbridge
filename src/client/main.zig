@@ -72,7 +72,6 @@ pub fn main() !void {
     defer peers.deinit();
     world.image.updateOnParentResize(world.surface, world.gui);
     fullRender(&world);
-    draw.thing(world.user.color, whiteboard.surface);
     draw.squares(whiteboard.surface);
 
     // Set to true if network initialization fails.
