@@ -51,7 +51,6 @@ pub fn build(b: *Builder) void {
 
             exe.addPackagePath("client", "src/client/index.zig");
             const lib_cflags = [_][]const u8{"-std=c99"};
-            exe.addCSourceFile("src/client/setpixel.c", lib_cflags[0..]);
             exe.linkSystemLibrary("c");
 
             const run_cmd = exe.run();
