@@ -14,7 +14,3 @@ pub const World = struct {
     peers: *users.Peers,
     user: *users.User,
 };
-
-pub fn pack(allocator: *std.mem.Allocator, world: *World) []const u8 {
-    //
-}
