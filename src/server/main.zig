@@ -65,6 +65,9 @@ pub fn main() !void {
         // Does not guarantee the read will be complete by the time we start.
         const readable_fd = try poller.readable();
         if (readable_fd == server.sockfd.?) {
+            // TODO there is a potential race condition here
+            // If the client drops the connection between the poll() and the accept() calls,
+            // this would lead to the server blocking right here until a new client joins.
             const new = try accept_client(allocator, &server, &leavers);
             // Register new client
             try clients.put(new.fd, new);
