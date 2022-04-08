@@ -341,6 +341,11 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
         c.SDL_MOUSEMOTION => {
             var x = event.motion.x;
             var y = event.motion.y;
+            // Pan around a cropped image if we are holding the middle mouse button.
+            if ((event.motion.state & c.SDL_BUTTON_MMASK) != 0) {
+                world.image.modifyCropOffset(-event.motion.xrel, -event.motion.yrel);
+                return null;
+            }
             if (coordinatesAreInImage(world.image.render_area, x, y)) {
                 adjustMousePos(world.image, &x, &y);
                 return NetAction{ .cursor_move = .{ .pos = .{ .x = x, .y = y }, .delta = .{ .x = event.motion.xrel, .y = event.motion.yrel } } };
@@ -377,7 +382,10 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             var y = event.button.y;
             adjustMousePos(world.image, &x, &y);
             if (coordinatesAreInImage(world.image.render_area, event.button.x, event.button.y)) {
-                return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
+                // Ensure we aren't panning using middle mouse button.
+                if (event.button.button != 2) {
+                    return NetAction{ .mouse_press = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
+                }
             } else {
                 const guiEvent = gui.events.handleButtonPress(
                     world.surface,
@@ -404,10 +412,13 @@ fn onEvent(event: c.SDL_Event, world: *state.World, user: *const users.User, run
             }
         },
         c.SDL_MOUSEBUTTONUP => {
-            var x = event.button.x;
-            var y = event.button.y;
-            adjustMousePos(world.image, &x, &y);
-            return NetAction{ .mouse_release = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
+            // Ensure we aren't panning using middle mouse button.
+            if (event.button.button != 2) {
+                var x = event.button.x;
+                var y = event.button.y;
+                adjustMousePos(world.image, &x, &y);
+                return NetAction{ .mouse_release = .{ .button = event.button.button, .pos = .{ .x = x, .y = y } } };
+            }
         },
         c.SDL_MOUSEWHEEL => {
             const TOOL_RESIZE_T: type = std.meta.TagPayload(NetAction, .tool_resize);
