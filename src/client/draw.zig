@@ -11,6 +11,11 @@ pub var Rectangle: c.SDL_Rect = c.SDL_Rect{
     .w = 1,
 };
 
+pub inline fn setPixel(pos: Dot, color: u32, surface: *c.SDL_Surface) void {
+    const pixels = @ptrCast([*]u32, @alignCast(4, surface.pixels.?));
+    pixels[@intCast(usize, pos.x + (pos.y * surface.w))] = color;
+}
+
 pub fn putRectangle(x: c_int, y: c_int, color: u32, surface: *c.SDL_Surface) void {
     //setPixel(x, y, color, surface);
     Rectangle.x = x;
