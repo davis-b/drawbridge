@@ -8,8 +8,7 @@ const Tool = @import("client").Tool;
 pub const Action = union(enum) {
     tool_change: Tool,
     tool_resize: u8,
-    /// All cursor action coordinates are confined to and conforming within the active shared Whiteboard image.
-    // Hence, someone cropped so that the top of their screen is the bottom half of the image, they will send the proper coordinates to their peers.
+    // All cursor action coordinates are relative to the room's shared Whiteboard image.
     cursor_move: Move,
     mouse_press: Click,
     mouse_release: Click,
