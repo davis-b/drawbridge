@@ -111,6 +111,16 @@ pub fn main() !void {
     log.info("running in local mode? {}", .{localOnly});
     if (localOnly) {
         while (running) {
+            const start = std.time.milliTimestamp();
+            defer {
+                const end = std.time.milliTimestamp();
+                const delta = end - start;
+                if (delta < 16) {
+                    const sleepTime = @intCast(usize, 16 - delta);
+                    std.time.sleep(sleepTime * std.time.ns_per_ms);
+                }
+            }
+
             renderImage(world.surface, world.image);
             sdl.display.updateSurface(world.window);
 
@@ -143,6 +153,12 @@ pub fn main() !void {
                 if (start > lastPeerUpdate + 500) {
                     gui.updatePeers(&world);
                     lastPeerUpdate = start;
+                }
+                const end = std.time.milliTimestamp();
+                const delta = end - start;
+                if (delta < 16) {
+                    const sleepTime = @intCast(usize, 16 - delta);
+                    std.time.sleep(sleepTime * std.time.ns_per_ms);
                 }
             }
             renderImage(world.surface, world.image);
