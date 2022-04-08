@@ -181,7 +181,6 @@ pub fn main() !void {
                         else => {},
                     }
                     if (world.peers.count() > 0 and fully_joined_room) {
-                        // TODO we should not be sending out draw packets from a cursor clicking on surfaces outside the drawing area.
                         netPipe.out.put(.{ .action = action }) catch {
                             log.warn("Outgoing network pipe is full. Action ignored!", .{});
                             continue;
