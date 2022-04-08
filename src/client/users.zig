@@ -7,8 +7,8 @@ pub const User = packed struct {
     size: u8 = 1,
     color: u32 = 0xaabbccff,
     tool: Tool = .pencil,
-    lastX: c_int = 0,
-    lastY: c_int = 0,
+    lastX: c_int = -1,
+    lastY: c_int = -1,
     layer: u8 = 0,
     lastActive: i64 = 0,
 

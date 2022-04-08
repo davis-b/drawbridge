@@ -467,6 +467,8 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
                 gui.updateTools(world);
                 gui.updateHeader(world);
             }
+            user.lastX = -1;
+            user.lastY = -1;
         },
         .tool_resize => |size| {
             user.size = size;
@@ -479,13 +481,8 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
                 .pencil => {
                     if (user.drawing) {
                         tools.pencil(move.pos, move.delta, user.size, user.color, world.image.surface);
-                    } else {
-                        // Preview what would happen if the user started drawing.
-                        // TODO add a layer that allows temporary stuff like this to appear at all.
-                        // Perhaps we use a 'ghost' surface that gets reset and replaced repeatedly.
-                        // Currently the image blits on top of this and removes it.
-                        // or do something like this:
-                        // tools.pencil(move.pos.x, move.pos.y, 0, 0, user, world.surface);
+                        user.lastX = move.pos.x;
+                        user.lastY = move.pos.y;
                     }
                 },
                 .eraser => {
@@ -500,7 +497,14 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
             const x = click.pos.x;
             const y = click.pos.y;
             switch (user.tool) {
-                .pencil => tools.pencil(click.pos, .{ .x = 0, .y = 0 }, user.size, user.color, world.image.surface),
+                .pencil => {
+                    tools.pencil(click.pos, .{ .x = 0, .y = 0 }, user.size, user.color, world.image.surface);
+                    if (click.button != 1 and user.lastX >= 0 and user.lastY >= 0) { // != LMB
+                        draw.line2(x, x - user.lastX, y, y - user.lastY, user.color, world.image.surface) catch unreachable;
+                    }
+                    user.lastX = x;
+                    user.lastY = y;
+                },
                 .eraser => {
                     tools.pencil(click.pos, .{ .x = 0, .y = 0 }, user.size, world.image.bgColor, world.image.surface);
                 },
@@ -514,11 +518,6 @@ fn doAction(action: NetAction, user: *users.User, world: *state.World, fromNet: 
                     fromNet,
                 ),
             }
-            // if (click.button != 1) { // != LMB
-            //     draw.line2(x, x - user.lastX, y, y - user.lastY, user, world.image.surface) catch unreachable;
-            // }
-            user.lastX = x;
-            user.lastY = y;
         },
         .mouse_release => |click| {
             user.drawing = false;
