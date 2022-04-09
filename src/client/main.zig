@@ -242,6 +242,7 @@ pub fn main() !void {
                     // We have been supplied with a new world state to copy.
                     .state_set => |message| {
                         fully_joined_room = true;
+                        world.shouldRender = true;
                         var new_state = message.state;
                         defer allocator.free(new_state.users);
                         defer allocator.free(new_state.image);
