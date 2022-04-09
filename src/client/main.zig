@@ -16,6 +16,7 @@ const state = @import("state.zig");
 const tools = @import("tools.zig");
 const users = @import("users.zig");
 const Whiteboard = @import("whiteboard.zig").Whiteboard;
+const text = @import("gui/font.zig");
 
 const changeColors = c.changeColors;
 const inverseColors = c.inverseColors;
@@ -149,7 +150,7 @@ pub fn main() !void {
         while (running) {
             const start = std.time.milliTimestamp();
             defer {
-                if (start > lastPeerUpdate + 500) {
+                if (fully_joined_room and start > lastPeerUpdate + 500) {
                     gui.updatePeers(&world);
                     lastPeerUpdate = start;
                 }
@@ -158,6 +159,21 @@ pub fn main() !void {
                 if (delta < 16) {
                     const sleepTime = @intCast(usize, 16 - delta);
                     std.time.sleep(sleepTime * std.time.ns_per_ms);
+                }
+            }
+
+            if (!fully_joined_room) {
+                // Draw a loading indicator that changes with time, to indicate to the user that they are loading into a room.
+                if (start > lastPeerUpdate + 400) {
+                    var random = std.rand.DefaultPrng.init(@bitCast(u64, std.time.milliTimestamp()));
+                    draw.circleFilled(.{ .x = 340, .y = 300 }, 30, random.random.int(u32), world.image.surface);
+                    draw.circleFilled(.{ .x = 380, .y = 300 }, 30, random.random.int(u32), world.image.surface);
+                    draw.circleFilled(.{ .x = 420, .y = 300 }, 30, random.random.int(u32), world.image.surface);
+                    const textColor = sdl.display.mapRGBA(.{ 180, 50, 120, 255 }, world.image.surface.format);
+                    text.write(world.image.surface, "loading room", .{ .x = 270, .y = 350 }, 3, textColor, 500);
+
+                    world.shouldRender = true;
+                    lastPeerUpdate = start;
                 }
             }
             if (world.shouldRender) {
