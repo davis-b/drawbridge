@@ -32,7 +32,7 @@ pub fn startReceiving(context: ThreadContext) void {
         };
         // Our queue implementation copies the item we give it.
         // Thus, we do not have to worry about freeing the underlying memory before the queue consumer uses it.
-        defer context.client.marshaller.allocator.free(dataPacket);
+        defer context.client.allocator.free(dataPacket);
 
         const message = net.unwrap(.server, dataPacket) catch unreachable;
         handleMsg(context, message) catch |err| {

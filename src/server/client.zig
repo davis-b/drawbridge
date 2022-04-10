@@ -1,7 +1,7 @@
 const std = @import("std");
 const log = std.log;
 
-const mot = @import("mot");
+pub const Connection = @import("mot").Connection(@import("net").ConnectionHeaderT);
 
 pub const ClientIdT = u8;
 
@@ -14,7 +14,7 @@ pub const Client = struct {
     fd: std.os.fd_t,
 
     /// Point of interaction when sending and receiving packets.
-    connection: mot.Connection,
+    connection: Connection,
 
     /// A list of clients which will be removed from the server.
     /// Placed in the client struct so that we don't have to pass this around 
@@ -36,7 +36,7 @@ pub const Client = struct {
     /// When we receive a world state update from a peer, the buffer will be sent out and deleted.
     packet_buffer: ?PacketStorage = null,
 
-    pub fn init(fd: std.os.fd_t, connection: mot.Connection, leavers: *Leavers) Client {
+    pub fn init(fd: std.os.fd_t, connection: Connection, leavers: *Leavers) Client {
         return Client{ .fd = fd, .connection = connection, .leavers = leavers };
     }
 
@@ -109,7 +109,7 @@ const PacketStorage = struct {
 pub fn accept_client(allocator: *std.mem.Allocator, server: *std.net.StreamServer, leavers: *Leavers) !Client {
     const raw_connection = try server.accept();
     errdefer raw_connection.stream.close();
-    var motcon = try mot.Connection.init_from_stream(allocator, raw_connection.stream);
+    var motcon = try Connection.init(allocator, raw_connection.stream.handle);
     // stream.handle may not be interchangeable with a FD on all platforms.
     // Will poll still work on those platforms?
     return Client.init(motcon.stream.handle, motcon, leavers);

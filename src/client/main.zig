@@ -80,7 +80,7 @@ pub fn main() !void {
     // All communication will happen through these queues.
     var netPipe = net.Pipe{};
     var netThreads: [2]*std.Thread = undefined;
-    var netConnection: net.mot.Connection = undefined;
+    var netConnection: net.Connection = undefined;
     // Will not be true until we join a room and either it has no state or we receive state from someone in that room.
     var fully_joined_room = false;
     if (options.ip) |ip| netSetupBlk: {
@@ -145,6 +145,9 @@ pub fn main() !void {
                 // netThreads[1].wait(); // incoming packets thread
                 netConnection.deinit();
             }
+            net.deinit() catch |err| {
+                log.err("Error cleaning up networking {}", .{err});
+            };
         }
         var lastPeerUpdate: i64 = 0;
         while (running) {

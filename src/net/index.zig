@@ -4,6 +4,8 @@ const std = @import("std");
 
 pub const FromServer = @import("server_made_packet.zig");
 pub const FromClient = @import("client_made_packet.zig");
+// TODO reduce this to u16 when we implement packet fragmenting
+pub const ConnectionHeaderT = u24;
 
 /// A simple packet type, containing a kind and some data.
 pub fn Packet(kind: PacketOriginator) type {

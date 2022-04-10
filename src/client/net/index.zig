@@ -4,6 +4,7 @@ const log = std.log.scoped(.netmain);
 pub const mot = @import("mot"); // message oriented tcp
 pub const cereal = @import("cereal");
 const net = @import("net"); // network code/data shared with server
+pub const Connection = mot.Connection(net.ConnectionHeaderT);
 const Queue = @import("queue").ThreadsafeQueue;
 
 const users = @import("client").users;
@@ -24,25 +25,30 @@ pub const Pipe = struct {
 
 pub const ThreadContext = struct {
     pipe: *Pipe,
-    client: *mot.Connection,
+    client: *Connection,
     allocator: *std.mem.Allocator,
 };
 
 /// Initializes a connection with the server.
-pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16) !mot.Connection {
+pub fn init(allocator: *std.mem.Allocator, ip: []const u8, port: u16) !Connection {
+    try mot.init();
     const addr = try std.net.Address.parseIp(ip, port);
     var client = try connect(allocator, addr);
     return client;
 }
 
+pub fn deinit() !void {
+    try mot.deinit();
+}
+
 /// Starts the network read/write threads.
-pub fn startThreads(allocator: *std.mem.Allocator, pipe: *Pipe, client: *mot.Connection) ![2]*std.Thread {
+pub fn startThreads(allocator: *std.mem.Allocator, pipe: *Pipe, client: *Connection) ![2]*std.Thread {
     const out_thread = try std.Thread.spawn(send.startSending, .{ .pipe = pipe, .client = client, .allocator = allocator });
     const in_thread = try std.Thread.spawn(recv.startReceiving, .{ .pipe = pipe, .client = client, .allocator = allocator });
     return [2]*std.Thread{ out_thread, in_thread };
 }
 
-pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connection {
+pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !Connection {
     // connect to server
     const stream = blk: {
         if (std.builtin.os.tag == .windows) {
@@ -73,7 +79,7 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
     };
 
     // create mot client
-    var client = mot.Connection.init_from_stream(allocator, stream) catch |err| {
+    var client = Connection.init(allocator, stream.handle) catch |err| {
         stream.close();
         return err;
     };
@@ -83,7 +89,7 @@ pub fn connect(allocator: *std.mem.Allocator, addr: std.net.Address) !mot.Connec
 
 /// If the server sends a try_again packet, we will block while doing so.
 /// Returns true if we are the only member of a room, otherwise false.
-pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: []const u8) !bool {
+pub fn enter_room(allocator: *std.mem.Allocator, client: *Connection, room: []const u8) !bool {
     log.info("requesting to join room: \"{s}\"", .{room});
     var room_packet = try net.FromClient.wrap(allocator, .room_request, room);
     defer allocator.free(room_packet);
@@ -94,7 +100,7 @@ pub fn enter_room(allocator: *std.mem.Allocator, client: *mot.Connection, room: 
 
     log.debug("waiting for response", .{});
     const result_packet = try client.recv(result_buffer[0..]);
-    defer client.marshaller.allocator.free(result_packet);
+    defer client.allocator.free(result_packet);
     log.debug("response received", .{});
 
     const result = try net.unwrap(.server, result_packet);
