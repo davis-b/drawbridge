@@ -1,3 +1,6 @@
 [submodule "dependencies/mot"]
 	path = dependencies/mot
 	url = https://github.com/davis-b/mot
+[submodule "dependencies/queue"]
+	path = dependencies/queue
+	url = https://github.com/davis-b/queue

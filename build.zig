@@ -88,7 +88,7 @@ fn add_package_paths(exe: anytype) void {
     // Message Oriented Tcp
     exe.addPackagePath("mot", "dependencies/mot/src/index.zig");
     // Threadsafe queue
-    exe.addPackagePath("queue", "../common/queue.zig"); // TODO put this on github and use it as a submodule within this dir
+    exe.addPackagePath("queue", "dependencies/queue/static_queue.zig");
     // Command line parser
     exe.addPackagePath("parser", "../common/parser.zig"); // TODO put this on github and use it as a submodule within this dir
     // Packet serializer
