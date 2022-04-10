@@ -1,0 +1,3 @@
+[submodule "dependencies/mot"]
+	path = dependencies/mot
+	url = https://github.com/davis-b/mot

@@ -86,7 +86,7 @@ fn add_package_paths(exe: anytype) void {
     // Shared network code
     exe.addPackagePath("net", "src/net/index.zig");
     // Message Oriented Tcp
-    exe.addPackagePath("mot", "../mot/src/index.zig"); // TODO put MOT on github and use it as a submodule within this dir
+    exe.addPackagePath("mot", "dependencies/mot/src/index.zig");
     // Threadsafe queue
     exe.addPackagePath("queue", "../common/queue.zig"); // TODO put this on github and use it as a submodule within this dir
     // Command line parser
