@@ -92,5 +92,5 @@ fn add_package_paths(exe: anytype) void {
     // Command line parser
     exe.addPackagePath("parser", "dependencies/parser/parser.zig");
     // Packet serializer
-    exe.addPackagePath("cereal", "../common/cereal.zig"); // TODO put this on github and use it as a submodule within this dir
+    exe.addPackagePath("cereal", "dependencies/cereal/cereal.zig");
 }

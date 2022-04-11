@@ -7,3 +7,6 @@
 [submodule "dependencies/parser"]
 	path = dependencies/parser
 	url = https://github.com/davis-b/parser
+[submodule "dependencies/cereal"]
+	path = dependencies/cereal
+	url = https://github.com/davis-b/cereal
