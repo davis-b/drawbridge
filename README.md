@@ -1,7 +1,8 @@
 # Drawbridge #
 
 ## What is _Drawbridge_? ##
-_Drawbridge_ is a simple paint program with a twist. It allows multiple people to connect to the same canvas, via the internet.
+_Drawbridge_ is a simple paint program with a twist. It allows multiple people to connect to the same canvas, via the internet.  
+![program-in-action](docs/example_video.gif)  
 
 ### Requirements: ###
 All you need is an internet connection, Linux or Windows, and an x86\_64 CPU.
