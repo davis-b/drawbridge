@@ -25,7 +25,7 @@ const maxDrawSize: c_int = std.math.maxInt(c_int);
 
 const Options = struct {
     ip: ?[]const u8,
-    port: u16 = 8797,
+    port: u16 = 9890,
     room: []const u8 = "default",
 };
 
