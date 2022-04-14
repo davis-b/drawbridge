@@ -53,6 +53,18 @@ The right GUI bar contains information about the peers you are connected to, inc
 
 - - -
 
+
+## How _Drawbridge_ works ##
+
+_Drawbridge_ sends action packets to a _Drawbridge_ server. The server then forwards those packets any other clients connected to the same drawing room. They are then replayed as if they originated on the receiving client.  
+
+Action packets are used to represent any input that needs to be shared over the network.  
+Instead of drawing a line and sharing the changed image data, we instead share the same actions we operated on to draw that line.
+Those actions would be something along the lines of `start drawing at (x, y)` followed by a series of `move cursor (x, y)`, and finally a `stop drawing` action.
+
+- - -
+
+
 ## Features ##
 * Share a drawing canvas with other people, over the internet.
 * A few basic drawing tools
