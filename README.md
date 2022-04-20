@@ -5,7 +5,8 @@ _Drawbridge_ is a simple paint program with a twist. It allows multiple people t
 ![program-in-action](docs/example_video.gif)  
 
 ### Requirements: ###
-All you need is an internet connection, Linux or Windows, and an x86\_64 CPU.
+All you need is an internet connection, Linux or Windows, and an x86\_64 CPU.  
+If you don't want to build the program from source, you can find the binaries in the [releases](https://github.com/davis-b/drawbridge/releases/tag/v1.0.0) page.
 
 #### Build requirements: ####
 If you're building _Drawbdrige_ from source, you will need:
